@@ -1,4 +1,4 @@
-# Portfolio — Alamin Mohaddis Hasan
+# Portfolio - Alamin Mohaddis Hasan
 
 > AI-powered personal portfolio built with Next.js, Supabase, and Google Gemini
 
@@ -6,12 +6,12 @@
 
 ## Features
 
-- 🤖 **Mino AI Agent** — Gemini 2.5 Flash answers questions about my work
-- 🎨 **Dual theme** — Light (camel) / Dark (champagne gold) with 6-layer glassmorphism
-- ⚡ **Spring-physics cursor** — Framer Motion dual-blob reactive background
-- 🗄️ **Full CMS** — Admin dashboard for all content, no redeploy needed
-- 📬 **Contact form** — Rate-limited, validated, saves to DB, sends via Resend
-- 🔒 **Secure** — RLS on all tables, hashed IPs, Zod validation, no hardcoded secrets
+- 🤖 **Mino AI Agent** - Gemini 2.5 Flash answers questions about my work
+- 🎨 **Dual theme** - Light (camel) / Dark (champagne gold) with 6-layer glassmorphism
+- ⚡ **Spring-physics cursor** - Framer Motion dual-blob reactive background
+- 🗄️ **Full CMS** - Admin dashboard for all content, no redeploy needed
+- 📬 **Contact form** - Rate-limited, validated, saves to DB, sends via Resend
+- 🔒 **Secure** - RLS on all tables, hashed IPs, Zod validation, no hardcoded secrets
 
 ## Tech Stack
 
@@ -46,12 +46,12 @@ npm run dev
 ## Environment Variables
 
 See `.env.example` for all required variables.
-Never commit `.env.local` — it is in `.gitignore`.
+Never commit `.env.local` - it is in `.gitignore`.
 
 ## Admin Access
 
 The admin dashboard lives at `/admin/login`.  
-Account created directly in Supabase Auth — no public signup.
+Account created directly in Supabase Auth - no public signup.
 
 ---
 
