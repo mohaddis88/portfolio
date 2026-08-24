@@ -1,14 +1,8 @@
 "use client";
 
 // --------------------------------─
-// portfolio-v6.tsx
+// portfolio-v7-connected.tsx
 // Drop into: app/page.tsx
-//
-// npm install framer-motion
-// npm install shaders          ← for hero FlutedGlass (optional, see below)
-//
-// .env.local:
-//   NEXT_PUBLIC_GEMINI_KEY=your_key_here
 // --------------------------------─
 
 import {
@@ -18,11 +12,13 @@ import {
   motion, AnimatePresence, useSpring, useReducedMotion,
 } from "framer-motion";
 import { ContactForm } from "@/components/ContactForm";
+import { createClient } from "@/lib/supabase/client";
+
 // --------------------------------─
-// SHADERS - Hero section FlutedGlass only.
-// Uncomment once: npm install shaders
+// SHADERS (Uncomment once: npm install shaders)
 // --------------------------------─
 import { Shader, Swirl, ChromaFlow, FlutedGlass, FilmGrain } from "shaders/react";
+
 function HeroShaderLayer() {
   return (
     <Shader style={{ position:"absolute", inset:0, zIndex:0, width:"100%", height:"100%", pointerEvents:"none" }}>
@@ -36,7 +32,7 @@ function HeroShaderLayer() {
     </Shader>
   );
 }
-// Dark theme variant:
+
 function HeroShaderLayerDark() {
   return (
     <Shader style={{ position:"absolute", inset:0, zIndex:0, width:"100%", height:"100%", pointerEvents:"none" }}>
@@ -53,75 +49,62 @@ function HeroShaderLayerDark() {
 
 // --------------------------------─
 // DESIGN TOKENS
-// Two completely separate accent families - light is camel, dark is champagne gold.
-// Green is gone. Each theme has its own identity.
 // --------------------------------─
 const LIGHT = {
-  bg:           "#FDFBF7",   // warm cream
-  glassBg:      "rgba(245,238,225,0.15)",
+  bg:            "#FDFBF7",
+  glassBg:       "rgba(245,238,225,0.15)",
   glassRaised:  "rgba(255,255,255,0.55)",
   glassBorder:  "rgba(210,180,140,0.25)",
   textPrimary:  "#2C241B",
   textSecondary:"#7A6548",
   textMuted:    "#A89070",
-  accent:       "#C19A6B",   // camel - unchanged, works great
-  accentLabel:  "#2C241B",   // dark text on camel button (5.89:1) ✅
+  accent:       "#C19A6B",
+  accentLabel:  "#2C241B",
   cardBg:       "rgba(255,255,255,0.92)",
   blob1: "#D4A373", blob2: "#93C5FD", blob3: "#14B8A6",
   isDark: false,
 };
 
 const DARK = {
-  bg:           "#1A1614",   // near-black warm
-  glassBg:      "rgba(18,14,12,0.52)",
+  bg:            "#1A1614",
+  glassBg:       "rgba(18,14,12,0.52)",
   glassRaised:  "rgba(28,22,18,0.72)",
   glassBorder:  "rgba(212,184,150,0.16)",
   textPrimary:  "#F5F0EA",
   textSecondary:"#A89F91",
   textMuted:    "#6B6158",
-  accent:       "#D4B896",   // champagne gold - 9.49:1 on dark bg ✅
-  accentLabel:  "#1A1614",   // dark text on gold (contrast passes) ✅
+  accent:       "#D4B896",
+  accentLabel:  "#1A1614",
   cardBg:       "rgba(28,23,20,0.92)",
   blob1: "#C4860A", blob2: "#2563EB", blob3: "#0F766E",
   isDark: true,
 };
 
-type Theme = typeof LIGHT;
-
-// Single radius token - Apple-consistent
+export type Theme = typeof LIGHT;
 const R = { full: 9999, xl: 24, lg: 16, md: 12, sm: 8, xs: 4 };
 
-// --------------------------------─
-// GLASS STYLES - 6-layer system.
-// The difference between premium glass and CSS rgba transparency:
-// 1. Inner glow (top edge "catches light")
-// 2. Depth shadow (panel levitates above bg)
-// 3. Specular highlight (shine on the surface - the ::before pseudo in real CSS)
-// 4. Refraction border (edge more opaque than panel = edge refraction)
-// 5. Saturation boost (real glass shifts colors behind it)
-// 6. Warm color tint (glass has hue, not just white wash)
-// --------------------------------─
 function glassStyle(T: Theme, blur = 20, elevated = false): React.CSSProperties {
   return {
     background: T.glassBg,
-    backdropFilter: "blur(" + blur + "px) saturate(190%) brightness(" + (T.isDark ? "1.08" : "1.03") + ")",
-    WebkitBackdropFilter: "blur(" + blur + "px) saturate(190%) brightness(" + (T.isDark ? "1.08" : "1.03") + ")",
-    border: "1px solid " + (T.isDark ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.70)"),
+    backdropFilter: `blur(${blur}px) saturate(190%) brightness(${T.isDark ? "1.08" : "1.03"})`,
+    WebkitBackdropFilter: `blur(${blur}px) saturate(190%) brightness(${T.isDark ? "1.08" : "1.03"})`,
+    border: `1px solid ${T.isDark ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.70)"}`,
     boxShadow: elevated
-      ? "0 0 0 0.5px " + T.glassBorder + ", 0 20px 60px rgba(0,0,0," + (T.isDark ? "0.50" : "0.12") + "), 0 4px 12px rgba(0,0,0," + (T.isDark ? "0.30" : "0.06") + "), inset 0 1px 0 rgba(255,255,255," + (T.isDark ? "0.14" : "0.80") + "), inset 0 -1px 0 rgba(0,0,0," + (T.isDark ? "0.12" : "0.04") + ")"
-      : "0 0 0 0.5px " + T.glassBorder + ", 0 8px 32px rgba(0,0,0," + (T.isDark ? "0.40" : "0.08") + "), 0 2px 6px rgba(0,0,0," + (T.isDark ? "0.20" : "0.04") + "), inset 0 1px 0 rgba(255,255,255," + (T.isDark ? "0.12" : "0.70") + ")",
+      ? `0 0 0 0.5px ${T.glassBorder}, 0 20px 60px rgba(0,0,0,${T.isDark ? "0.50" : "0.12"}), 0 4px 12px rgba(0,0,0,${T.isDark ? "0.30" : "0.06"}), inset 0 1px 0 rgba(255,255,255,${T.isDark ? "0.14" : "0.80"}), inset 0 -1px 0 rgba(0,0,0,${T.isDark ? "0.12" : "0.04"})`
+      : `0 0 0 0.5px ${T.glassBorder}, 0 8px 32px rgba(0,0,0,${T.isDark ? "0.40" : "0.08"}), 0 2px 6px rgba(0,0,0,${T.isDark ? "0.20" : "0.04"}), inset 0 1px 0 rgba(255,255,255,${T.isDark ? "0.12" : "0.70"})`,
   };
 }
 
 // --------------------------------─
-// OWNER DATA
+// DEFAULT DATA STRUCTURE (Fallback)
 // --------------------------------─
-const OWNER = {
+const DEFAULT_OWNER = {
   name:      "Alamin Mohaddis Hasan",
   first:     "MOHADDIS HASAN",
   last:      "ALAMIN",
   initials:  "MHA",
   role:      "Full-Stack Web Developer",
+  bio:       "I build full-stack web apps - the kind that look good, load fast, and don't break when someone clicks the wrong button.",
   uni:       "SEGi University",
   year:      "3rd Year · BIT",
   location:  "Malaysia",
@@ -136,75 +119,62 @@ const OWNER = {
     Tools:    ["Git", "Figma", "Vercel", "Docker", "VS Code"],
   },
   projects: [
-    { title:"StudySync",    tag:"Full-Stack", desc:"Real-time collaborative study platform - live cursors, shared notes, Pomodoro timer.", tech:["Next.js","Supabase","TypeScript"], demo:"#", repo:"#", emoji:"📚" },
-    { title:"CampusEats",  tag:"Frontend",   desc:"Food ordering app for SEGi canteen. Cut queue time by 40% during student pilot.",       tech:["React","Node.js","PostgreSQL"],   demo:"#", repo:"#", emoji:"🍜" },
-    { title:"Portfolio CMS",tag:"Backend",   desc:"Auth-gated headless CMS with CRUD, image upload to Supabase Storage, admin dashboard.", tech:["Next.js","Supabase","Tailwind"],   demo:"#", repo:"#", emoji:"⚙️"  },
+    { title:"StudySync",   tag:"Full-Stack", desc:"Real-time collaborative study platform - live cursors, shared notes, Pomodoro timer.", tech:["Next.js","Supabase","TypeScript"], demo:"#", repo:"#", emoji:"📚" },
   ],
   experience: [
-    { role:"Frontend Developer (Freelance)", org:"Self-Employed",  period:"Jan 2024 – Present", desc:"3 client projects - landing pages, dashboards, e-commerce flows. Delivered on time." },
-    { role:"BSc Information Technology",     org:"SEGi University", period:"2022 – Present",    desc:"3rd Year · CGPA 3.88 · 4× consecutive Dean's List" },
+    { role:"Frontend Developer", org:"Freelance",  period:"Jan 2024 – Present", desc:"Client projects - landing pages, dashboards." },
   ],
   awards: {
-    academic:       [
-      { title:"Dean's List Award", issuer:"SEGi University", year:"2022/23 Sem 1", gpa:"3.85", hasPdf:true },
-      { title:"Dean's List Award", issuer:"SEGi University", year:"2022/23 Sem 2", gpa:"3.90", hasPdf:true },
-      { title:"Dean's List Award", issuer:"SEGi University", year:"2023/24 Sem 1", gpa:"3.88", hasPdf:true },
-      { title:"Dean's List Award", issuer:"SEGi University", year:"2023/24 Sem 2", gpa:"3.92", hasPdf:true },
-    ],
-    certifications: [
-      { title:"Meta Front-End Developer", issuer:"Meta / Coursera",   year:"2024", hasPdf:true },
-      { title:"Responsive Web Design",    issuer:"freeCodeCamp",      year:"2023", hasPdf:true },
-      { title:"Google IT Support",        issuer:"Google / Coursera", year:"2023", hasPdf:true },
-    ],
-    volunteering:   [
-      { title:"Volunteer, Tech Event", issuer:"SEGi University", year:"2023", hasPdf:false },
-    ],
-    personal:       [
-      { title:"Self-Compassion Workshop", issuer:"Add Organisation", year:"2023", hasPdf:true },
-    ],
+    academic:       [{ title:"Dean's List", issuer:"SEGi University", year:"2023/24", gpa:"3.92", hasPdf:true }],
+    certifications: [{ title:"Meta Front-End", issuer:"Coursera",   year:"2024", hasPdf:true }],
+    volunteering:   [],
+    personal:       [],
   },
-  deanSemesters: [
-    { sem:"Sem 1 2022/23", gpa:"3.85" },
-    { sem:"Sem 2 2022/23", gpa:"3.90" },
-    { sem:"Sem 1 2023/24", gpa:"3.88" },
-    { sem:"Sem 2 2023/24", gpa:"3.92" },
-  ],
-  certs: [
-    { title:"Meta Front-End Developer", issuer:"Meta / Coursera",   year:"2024" },
-    { title:"Responsive Web Design",    issuer:"freeCodeCamp",      year:"2023" },
-    { title:"Google IT Support",        issuer:"Google / Coursera", year:"2023" },
-  ],
+  deanSemesters: [{ sem:"Sem 2 2023/24", gpa:"3.92" }],
+  certs: [{ title:"Meta Front-End", issuer:"Coursera", year:"2024" }],
 };
 
+export type OwnerData = typeof DEFAULT_OWNER;
+
 // --------------------------------─
-// GEMINI
+// GEMINI & CHIPS
 // --------------------------------─
 const GEMINI_KEY = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_GEMINI_KEY) ?? "YOUR_GEMINI_API_KEY";
 
-const SYSTEM_PROMPT = `You are "Mino", the AI embedded in ${OWNER.name}'s portfolio.
-Represent Alamin accurately and warmly to recruiters and developers.
+const getChips = (name: string) => ({
+  default:    ["Show me his projects", "What's his tech stack?", "4× Dean's List - really?", `Contact ${name}`],
+  about:      ["What's his stack?", "Show his projects", "His Dean's List"],
+  skills:     ["See his projects", "His experience", `How to contact ${name}?`],
+  projects:   ["More about his work", "His experience", `Contact ${name}`],
+  experience: ["Show certifications", "What's his stack?", `Contact ${name}`],
+  certs:      ["Show projects", "His stack", "How to reach him?"],
+  contact:    ["Show projects", "His tech stack", `About ${name}`],
+});
+
+async function callGemini(msg: string, hist: {role:string;text:string}[], owner: OwnerData) {
+  const SYSTEM_PROMPT = `You are "Mino", the AI embedded in ${owner.name}'s portfolio.
+Represent ${owner.first} accurately and warmly to recruiters and developers.
 
 RULES:
 1. Only state facts from the data below. Never invent credentials or skills.
-2. If asked about something not in the data, acknowledge it and redirect: "I don't see that in Alamin's profile yet - his focus is Full-Stack web. What he does have is [X]. Want to see?"
+2. If asked about something not in the data, acknowledge it and redirect: "I don't see that in ${owner.first}'s profile yet - his focus is Full-Stack web. What he does have is [X]. Want to see?"
 3. Keep replies SHORT - 2-4 sentences, then offer more. Chat, not essay.
 4. Tone: warm, confident, slightly informal. Like a colleague vouching for him.
 5. When showing data, include ONE tag so the UI renders rich cards:
    [SHOW_PROJECTS] [SHOW_SKILLS] [SHOW_EXPERIENCE] [SHOW_CERTS] [SHOW_CONTACT] [SHOW_ABOUT]
-6. Internship: always confirm YES, Malaysia, open to hybrid/on-site.
+6. Internship: always confirm YES, ${owner.location}, open to hybrid/on-site.
 
 DATA:
-University: ${OWNER.uni}, ${OWNER.year} | CGPA: ${OWNER.cgpa} | Dean's List: ${OWNER.deansList}× consecutive
-Stack: ${Object.entries(OWNER.skills).map(([k,v])=>k+": "+v.join(", ")).join(" | ")}
-Projects: ${OWNER.projects.map(p=>p.title+" ("+p.tag+") - "+p.desc).join(" | ")}
-Experience: ${OWNER.experience.map(e=>e.role+" at "+e.org+" ("+e.period+")").join(" | ")}
-Certs: ${OWNER.certs.map(c=>c.title+" by "+c.issuer+" ("+c.year+")").join(" | ")}`;
+University: ${owner.uni}, ${owner.year} | CGPA: ${owner.cgpa} | Dean's List: ${owner.deansList}× consecutive
+Stack: ${Object.entries(owner.skills).map(([k,v])=>k+": "+v.join(", ")).join(" | ")}
+Projects: ${owner.projects.map(p=>p.title+" ("+p.tag+") - "+p.desc).join(" | ")}
+Experience: ${owner.experience.map(e=>e.role+" at "+e.org+" ("+e.period+")").join(" | ")}
+Certs: ${owner.certs.map(c=>c.title+" by "+c.issuer+" ("+c.year+")").join(" | ")}`;
 
-async function callGemini(msg: string, hist: {role:string;text:string}[]) {
   const ep = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=" + GEMINI_KEY;
   const contents = [
     { role:"user",  parts:[{text:SYSTEM_PROMPT}] },
-    { role:"model", parts:[{text:"I'm Mino, ready to represent Alamin."}] },
+    { role:"model", parts:[{text:`I'm Mino, ready to represent ${owner.first}.`}] },
     ...hist.map(m=>({ role:m.role==="ai"?"model":"user", parts:[{text:m.text}] })),
     { role:"user", parts:[{text:msg}] },
   ];
@@ -218,204 +188,61 @@ async function callGemini(msg: string, hist: {role:string;text:string}[]) {
   return { text, richType:tag, section:tag?sm[tag]:null };
 }
 
-function getFallback(p:string){
+function getFallback(p:string, owner: OwnerData){
   const t=p.toLowerCase();
-  if(/about|who/.test(t))         return {text:`${OWNER.name} - 3rd year IT at ${OWNER.uni}, CGPA ${OWNER.cgpa}, 4× Dean's List. Full-Stack dev open for internship 2025.`,richType:"SHOW_ABOUT",section:"about"};
-  if(/skill|stack|tech/.test(t))  return {text:"Here's his full toolkit:",richType:"SHOW_SKILLS",section:"skills"};
-  if(/project|built/.test(t))     return {text:"Three real projects - not tutorial clones:",richType:"SHOW_PROJECTS",section:"projects"};
+  if(/about|who/.test(t))         return {text:`${owner.name} - ${owner.year} at ${owner.uni}, CGPA ${owner.cgpa}. Full-Stack dev open for internship.`,richType:"SHOW_ABOUT",section:"about"};
+  if(/skill|stack|tech/.test(t))  return {text:`Here's ${owner.first}'s full toolkit:`,richType:"SHOW_SKILLS",section:"skills"};
+  if(/project|built/.test(t))     return {text:`Here are ${owner.first}'s featured projects:`,richType:"SHOW_PROJECTS",section:"projects"};
   if(/experience|edu/.test(t))    return {text:"Where he's been:",richType:"SHOW_EXPERIENCE",section:"experience"};
-  if(/cert|award|dean|gpa/.test(t)) return {text:`${OWNER.deansList}× Dean's List - consistency, not luck:`,richType:"SHOW_CERTS",section:"certs"};
-  if(/contact|reach|hire/.test(t)) return {text:"Best ways to reach Alamin:",richType:"SHOW_CONTACT",section:"contact"};
-  if(/avail|intern/.test(t))       return {text:`Yes - actively looking for Full-Stack internship 2025. Malaysia-based, open to hybrid or on-site.`,richType:null,section:null};
-  return {text:"Try asking about his projects, stack, Dean's List, experience, or how to contact him.",richType:null,section:null};
+  if(/cert|award|dean|gpa/.test(t)) return {text:`${owner.deansList}× Dean's List - consistency, not luck:`,richType:"SHOW_CERTS",section:"certs"};
+  if(/contact|reach|hire/.test(t)) return {text:`Best ways to reach ${owner.first}:`,richType:"SHOW_CONTACT",section:"contact"};
+  if(/avail|intern/.test(t))       return {text:`Yes - actively looking for Full-Stack internship 2025. ${owner.location}-based, open to hybrid or on-site.`,richType:null,section:null};
+  return {text:`Try asking about his projects, stack, Dean's List, experience, or how to contact him.`,richType:null,section:null};
 }
 
 // --------------------------------─
-// MINO AVATAR - geometric orb with planet-like shading.
-// NOT flat polygons - a sphere with specular highlights and depth.
-// Baby teal signature colour with light/shadow faces.
+// PIXEL AVATAR
 // --------------------------------─
-function MinoOrb({ size = 40, animate: doAnim = true }: { size?: number; animate?: boolean }) {
-  const [isHovered, setIsHovered] = useState(false);
-  const strokeWidth = Math.max(2, size * 0.07);
+function PixelAvatar({ T }: { T: Theme }) {
+  const [frame, setFrame] = useState(0);
+  const letters = {
+    'M': [1,0,0,0,1, 1,1,0,1,1, 1,0,1,0,1, 1,0,0,0,1, 1,0,0,0,1],
+    'I': [0,1,1,1,0, 0,0,1,0,0, 0,0,1,0,0, 0,0,1,0,0, 0,1,1,1,0],
+    'N': [1,0,0,0,1, 1,1,0,0,1, 1,0,1,0,1, 1,0,0,1,1, 1,0,0,0,1],
+    'O': [0,1,1,1,0, 1,0,0,0,1, 1,0,0,0,1, 1,0,0,0,1, 0,1,1,1,0]
+  };
+  const sequence = ['M', 'I', 'N', 'O'] as const;
+
+  useEffect(() => {
+    const interval = setInterval(() => setFrame((p) => (p + 1) % sequence.length), 1500);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <motion.div
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-      style={{
-        width: size,
-        height: size,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        cursor: "pointer",
-        flexShrink: 0,
-      }}
-    >
-      <motion.div
-        animate={{
-          scale: isHovered ? [1, 1.3, 1] : [1, 1.1, 1],
-          opacity: isHovered ? 0.4 : 0.18,
-        }}
-        transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-        style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: "50%",
-          background: "radial-gradient(circle, #C19A6B 0%, transparent 70%)",
-          filter: "blur(6px)",
-        }}
-      />
-
-      <svg width={size} height={size} viewBox="0 0 100 100" style={{ overflow: "visible" }}>
-        <defs>
-          <linearGradient id="crestGrad" x1="0%" y1="100%" x2="0%" y2="0%">
-            <stop offset="0%" stopColor="#C19A6B" />
-            <stop offset="60%" stopColor="#D4B896" />
-            <stop offset="100%" stopColor="#F5E6D3" />
-          </linearGradient>
-        </defs>
-
-        {/* Outer Circular Ring with Gap */}
-        <motion.circle
-          cx="50"
-          cy="50"
-          r="40"
-          fill="none"
-          stroke="rgba(212, 184, 150, 0.25)"
-          strokeWidth={strokeWidth * 0.7}
-          strokeDasharray="180 60"
-          animate={{ rotate: [0, 360] }}
-          transition={{ duration: isHovered ? 8 : 20, repeat: Infinity, ease: "linear" }}
-          style={{ transformOrigin: "50px 50px" }}
-        />
-
-        {/* Soundwave Signal 'M' Crest */}
-        <motion.path
-          d="M 22 68 L 22 42 L 38 58 L 50 24 L 62 58 L 78 42 L 78 68"
-          fill="none"
-          stroke="url(#crestGrad)"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeLinejoin="round"
+    <div style={{
+      width: "100%", height: "100%", background: T.cardBg,
+      borderRadius: "16px", border: `1px solid ${T.glassBorder}`,
+      boxShadow: "0 8px 24px rgba(0,0,0,0.05)", padding: "12%",
+      display: "grid", gridTemplateColumns: "repeat(5, 1fr)",
+      gridTemplateRows: "repeat(5, 1fr)", gap: "4%"
+    }}>
+      {letters[sequence[frame]].map((isActive, i) => (
+        <motion.div key={i} initial={false}
           animate={{
-            d: isHovered
-              ? "M 22 68 L 22 38 L 38 56 L 50 18 L 62 56 L 78 38 L 78 68"
-              : "M 22 68 L 22 42 L 38 58 L 50 24 L 62 58 L 78 42 L 78 68",
+            backgroundColor: isActive ? T.accent : T.glassRaised,
+            opacity: isActive ? 1 : 0.2,
+            scale: isActive ? 1.05 : 1
           }}
-          transition={{ duration: 0.4, ease: "easeInOut" }}
+          transition={{ duration: 0.3 }}
+          style={{ width: "100%", height: "100%", borderRadius: "2px" }}
         />
-
-        {/* Pulse Dot at the High Peak */}
-        <motion.circle
-          cx="50"
-          cy={isHovered ? 18 : 24}
-          r="3"
-          fill="#F5E6D3"
-          animate={{
-            scale: isHovered ? [1, 1.5, 1] : [1, 1.2, 1],
-            opacity: [0.7, 1, 0.7],
-          }}
-          transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </svg>
-    </motion.div>
+      ))}
+    </div>
   );
 }
 
 // --------------------------------─
-// HERO GRADIENT BG - CSS animated mesh that moves.
-// Gives the hero visual interest without the shaders package.
-// Replace with <HeroShaderLayer T={T}/> once: npm install shaders
-// --------------------------------─
-function HeroGradientBg({ T }: { T: Theme }) {
-  return (
-    <>
-      <style>{`
-        @keyframes heroOrb1 {
-          0%,100% { transform: translate(0%, 0%) scale(1); }
-          33%      { transform: translate(8%, -12%) scale(1.15); }
-          66%      { transform: translate(-6%, 8%) scale(0.92); }
-        }
-        @keyframes heroOrb2 {
-          0%,100% { transform: translate(0%, 0%) scale(1); }
-          33%      { transform: translate(-10%, 6%) scale(1.1); }
-          66%      { transform: translate(12%, -8%) scale(0.95); }
-        }
-        @keyframes heroOrb3 {
-          0%,100% { transform: translate(0%, 0%) scale(1); }
-          50%      { transform: translate(6%, 10%) scale(1.08); }
-        }
-      `}</style>
-
-      {/* Full bleed animated gradient mesh - the hero's visual soul */}
-      <div style={{
-        position: "absolute", inset: 0, zIndex: 0,
-        overflow: "hidden", pointerEvents: "none",
-      }}>
-        {/* Orb 1 - large, top-left anchor */}
-        <div style={{
-          position: "absolute",
-          top: "-20%", left: "-10%",
-          width: "70%", height: "80%",
-          borderRadius: "50%",
-          background: T.isDark
-            ? "radial-gradient(ellipse, rgba(196,134,10,0.18) 0%, transparent 70%)"
-            : "radial-gradient(ellipse, rgba(193,154,107,0.22) 0%, transparent 70%)",
-          filter: "blur(60px)",
-          animation: "heroOrb1 18s ease-in-out infinite",
-        }}/>
-
-        {/* Orb 2 - medium, bottom-right */}
-        <div style={{
-          position: "absolute",
-          bottom: "-10%", right: "-5%",
-          width: "55%", height: "65%",
-          borderRadius: "50%",
-          background: T.isDark
-            ? "radial-gradient(ellipse, rgba(37,99,235,0.12) 0%, transparent 70%)"
-            : "radial-gradient(ellipse, rgba(147,197,253,0.18) 0%, transparent 70%)",
-          filter: "blur(70px)",
-          animation: "heroOrb2 22s ease-in-out infinite",
-        }}/>
-
-        {/* Orb 3 - accent, center */}
-        <div style={{
-          position: "absolute",
-          top: "30%", left: "35%",
-          width: "40%", height: "45%",
-          borderRadius: "50%",
-          background: T.isDark
-            ? "radial-gradient(ellipse, rgba(15,118,110,0.10) 0%, transparent 70%)"
-            : "radial-gradient(ellipse, rgba(20,184,166,0.10) 0%, transparent 70%)",
-          filter: "blur(50px)",
-          animation: "heroOrb3 26s ease-in-out infinite",
-        }}/>
-
-        {/* Subtle dot grid overlay - depth texture */}
-        <div style={{
-          position: "absolute", inset: 0,
-          backgroundImage: "radial-gradient(circle, " + (T.isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)") + " 1px, transparent 1px)",
-          backgroundSize: "32px 32px",
-          mask: "radial-gradient(ellipse 90% 90% at 50% 50%, black 30%, transparent 100%)",
-          WebkitMask: "radial-gradient(ellipse 90% 90% at 50% 50%, black 30%, transparent 100%)",
-        }}/>
-
-        {/* Vignette - darkens edges so content reads clearly */}
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, " + T.bg + "88 100%)",
-        }}/>
-      </div>
-    </>
-  );
-}
-
-// --------------------------------─
-// LIQUID BACKGROUND - spring-physics cursor blobs.
-// Kept from your favourite version - the dual spring blob approach.
+// LIQUID BACKGROUND
 // --------------------------------─
 function LiquidBg({ T }: { T: Theme }) {
   const prefersReduced = useReducedMotion();
@@ -499,7 +326,7 @@ function AudioCtrl({ T }: { T: Theme }) {
 // --------------------------------─
 // RICH CARDS
 // --------------------------------─
-function RichCard({ type, T }: { type:string; T:Theme }) {
+function RichCard({ type, T, owner }: { type:string; T:Theme, owner: OwnerData }) {
   const chip: React.CSSProperties = {
     display:"inline-flex", alignItems:"center",
     padding:"3px 11px", borderRadius:R.full, fontSize:11, fontWeight:600,
@@ -513,7 +340,7 @@ function RichCard({ type, T }: { type:string; T:Theme }) {
   if(type==="SHOW_ABOUT") {
     return(
       <div style={{marginTop:12,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-        {[{l:"University",v:OWNER.uni},{l:"Year",v:OWNER.year},{l:"Dean's List",v:`${OWNER.deansList}× Consecutive`},{l:"Status",v:"Open to Internship"}]
+        {[{l:"University",v:owner.uni},{l:"Year",v:owner.year},{l:"Dean's List",v:`${owner.deansList}×`},{l:"Status",v:"Open to Internship"}]
           .map((s,i)=>(
             <motion.div key={i} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{delay:i*0.07}} style={card}>
               <div style={{fontSize:10,color:T.textMuted,marginBottom:3}}>{s.l}</div>
@@ -527,7 +354,7 @@ function RichCard({ type, T }: { type:string; T:Theme }) {
   if(type==="SHOW_SKILLS") {
     return(
       <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:10}}>
-        {Object.entries(OWNER.skills).map(([cat,skills],i)=>(
+        {Object.entries(owner.skills).map(([cat,skills],i)=>(
           <motion.div key={cat} initial={{opacity:0,x:-8}} animate={{opacity:1,x:0}} transition={{delay:i*0.1}}>
             <div style={{fontSize:10,color:T.textMuted,letterSpacing:"0.12em",marginBottom:6}}>{cat.toUpperCase()}</div>
             <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
@@ -542,7 +369,7 @@ function RichCard({ type, T }: { type:string; T:Theme }) {
   if(type==="SHOW_PROJECTS") {
     return(
       <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
-        {OWNER.projects.map((p,i)=>(
+        {owner.projects.map((p,i)=>(
           <motion.div key={i} initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:i*0.1}}
             whileHover={{y:-2}} style={{...card,cursor:"pointer"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
@@ -563,7 +390,7 @@ function RichCard({ type, T }: { type:string; T:Theme }) {
     return(
       <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8,paddingLeft:16,position:"relative"}}>
         <div style={{position:"absolute",left:0,top:8,bottom:8,width:1.5,background:T.accent+"40",borderRadius:2}}/>
-        {OWNER.experience.map((e,i)=>(
+        {owner.experience.map((e,i)=>(
           <motion.div key={i} initial={{opacity:0,x:-8}} animate={{opacity:1,x:0}} transition={{delay:i*0.1}} style={{position:"relative"}}>
             <div style={{position:"absolute",left:-20,top:14,width:8,height:8,borderRadius:"50%",background:T.accent,border:"2px solid "+T.bg}}/>
             <div style={card}>
@@ -583,9 +410,9 @@ function RichCard({ type, T }: { type:string; T:Theme }) {
       <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
         <motion.div initial={{opacity:0,scale:0.97}} animate={{opacity:1,scale:1}}
           style={{...card,background:T.accent+"0D",border:"1px solid "+T.accent+"30"}}>
-          <div style={{fontSize:12,color:T.accent,fontWeight:700,marginBottom:10}}>◆ {OWNER.deansList}× Dean&apos;s List · {OWNER.uni}</div>
+          <div style={{fontSize:12,color:T.accent,fontWeight:700,marginBottom:10}}>◆ {owner.deansList}× Dean&apos;s List · {owner.uni}</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:6}}>
-            {OWNER.deanSemesters.map((d,i)=>(
+            {owner.deanSemesters.map((d,i)=>(
               <motion.div key={i} initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.1+i*0.06}}
                 style={{padding:"8px 10px",borderRadius:R.sm,textAlign:"center",background:T.accent+"0A",border:"1px solid "+T.accent+"20"}}>
                 <div style={{fontSize:16,fontWeight:800,color:T.accent}}>{d.gpa}</div>
@@ -594,7 +421,7 @@ function RichCard({ type, T }: { type:string; T:Theme }) {
             ))}
           </div>
         </motion.div>
-        {OWNER.certs.map((c,i)=>(
+        {owner.certs.map((c,i)=>(
           <motion.div key={i} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{delay:0.35+i*0.08}}
             style={{...card,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div>
@@ -603,7 +430,6 @@ function RichCard({ type, T }: { type:string; T:Theme }) {
             </div>
             <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
               <span style={chip}>{c.year}</span>
-              <span style={{fontSize:10,color:T.accent,cursor:"pointer"}}>View ↗</span>
             </div>
           </motion.div>
         ))}
@@ -613,9 +439,9 @@ function RichCard({ type, T }: { type:string; T:Theme }) {
 
   if(type==="SHOW_CONTACT") {
     const links=[
-      {icon:"✉",l:"Email",v:OWNER.email,href:"mailto:"+OWNER.email},
-      {icon:"⬡",l:"GitHub",v:OWNER.github,href:"#"},
-      {icon:"◈",l:"LinkedIn",v:OWNER.linkedin,href:"#"},
+      {icon:"✉",l:"Email",v:owner.email,href:"mailto:"+owner.email},
+      {icon:"⬡",l:"GitHub",v:owner.github,href:owner.github},
+      {icon:"◈",l:"LinkedIn",v:owner.linkedin,href:owner.linkedin},
     ];
     return(
       <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:7}}>
@@ -647,19 +473,19 @@ function RichCard({ type, T }: { type:string; T:Theme }) {
 }
 
 // --------------------------------─
-// AWARDS CONTENT - tabbed
+// AWARDS CONTENT
 // --------------------------------─
 type TabId = "academic"|"certifications"|"volunteering"|"personal";
 
-function AwardsContent({ T }: { T:Theme }) {
+function AwardsContent({ T, owner }: { T:Theme, owner: OwnerData }) {
   const [activeTab, setActiveTab] = useState<TabId>("academic");
   const categories: {id:TabId;label:string;icon:string;count:number}[] = [
-    {id:"academic",       label:"Academic",     icon:"◆", count:OWNER.awards.academic.length},
-    {id:"certifications", label:"Courses",      icon:"◎", count:OWNER.awards.certifications.length},
-    {id:"volunteering",   label:"Volunteering", icon:"◈", count:OWNER.awards.volunteering.length},
-    {id:"personal",       label:"Personal",     icon:"⬡", count:OWNER.awards.personal.length},
+    {id:"academic",       label:"Academic",     icon:"◆", count:owner.awards.academic.length},
+    {id:"certifications", label:"Courses",      icon:"◎", count:owner.awards.certifications.length},
+    {id:"volunteering",   label:"Volunteering", icon:"◈", count:owner.awards.volunteering.length},
+    {id:"personal",       label:"Personal",     icon:"⬡", count:owner.awards.personal.length},
   ];
-  const items = OWNER.awards[activeTab];
+  const items = owner.awards[activeTab] || [];
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -680,12 +506,12 @@ function AwardsContent({ T }: { T:Theme }) {
         })}
       </div>
 
-      {activeTab==="academic"&&(
+      {activeTab==="academic" && owner.deanSemesters.length > 0 && (
         <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}}
           style={{padding:16,borderRadius:R.xl,background:T.accent+"0D",border:"1px solid "+T.accent+"30"}}>
-          <div style={{fontSize:11,color:T.accent,fontWeight:700,marginBottom:12,letterSpacing:"0.06em"}}>GPA BREAKDOWN - {OWNER.deansList}× CONSECUTIVE</div>
+          <div style={{fontSize:11,color:T.accent,fontWeight:700,marginBottom:12,letterSpacing:"0.06em"}}>GPA BREAKDOWN - {owner.deansList}× CONSECUTIVE</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
-            {OWNER.deanSemesters.map((d,i)=>(
+            {owner.deanSemesters.map((d,i)=>(
               <motion.div key={i} initial={{opacity:0,scale:0.9}} animate={{opacity:1,scale:1}} transition={{delay:i*0.07}}
                 style={{padding:"10px 6px",borderRadius:R.md,textAlign:"center",background:T.accent+"0A",border:"1px solid "+T.accent+"20"}}>
                 <div style={{fontSize:17,fontWeight:800,color:T.accent}}>{d.gpa}</div>
@@ -699,7 +525,7 @@ function AwardsContent({ T }: { T:Theme }) {
       <AnimatePresence mode="wait">
         <motion.div key={activeTab} initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0}} transition={{duration:0.22}}
           style={{display:"flex",flexDirection:"column",gap:8}}>
-          {items.map((item,i)=>(
+          {items.map((item: any,i: number)=>(
             <motion.div key={i} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{delay:i*0.07}}
               style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderRadius:R.lg,background:T.cardBg,border:"1px solid "+T.glassBorder}}>
               <div style={{width:8,height:8,borderRadius:"50%",background:T.accent,flexShrink:0}}/>
@@ -715,8 +541,6 @@ function AwardsContent({ T }: { T:Theme }) {
           ))}
         </motion.div>
       </AnimatePresence>
-
-      <div style={{fontSize:11,color:T.textMuted,textAlign:"center",padding:"8px 0"}}>PDFs hosted on Supabase Storage · update links in OWNER.awards</div>
     </div>
   );
 }
@@ -726,7 +550,7 @@ function AwardsContent({ T }: { T:Theme }) {
 // --------------------------------─
 type SectionId = "about"|"skills"|"projects"|"experience"|"certs"|"contact";
 
-function ContentPanel({ T, activeNav, onClose }: { T:Theme; activeNav:SectionId; onClose:()=>void }) {
+function ContentPanel({ T, activeNav, onClose, owner }: { T:Theme; activeNav:SectionId; onClose:()=>void, owner: OwnerData }) {
   const panelStyle: React.CSSProperties = {
     position:"absolute", left:220, top:20, bottom:20,
     width:480, zIndex:40, borderRadius:R.xl, padding:28,
@@ -741,7 +565,7 @@ function ContentPanel({ T, activeNav, onClose }: { T:Theme; activeNav:SectionId;
       content:(
         <div style={{display:"flex",flexDirection:"column",gap:20}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            {[{l:"University",v:OWNER.uni},{l:"Year",v:OWNER.year},{l:"CGPA",v:OWNER.cgpa},{l:"Dean's List",v:`${OWNER.deansList}× Consecutive`},{l:"Location",v:OWNER.location},{l:"Status",v:"Open to Internship"}]
+            {[{l:"University",v:owner.uni},{l:"Year",v:owner.year},{l:"CGPA",v:owner.cgpa},{l:"Dean's List",v:`${owner.deansList}× Consecutive`},{l:"Location",v:owner.location},{l:"Status",v:"Open to Internship"}]
               .map((s,i)=>(
                 <motion.div key={i} initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:i*0.06}}
                   style={{padding:"14px 16px",borderRadius:R.lg,background:T.cardBg,border:"1px solid "+T.glassBorder}}>
@@ -751,8 +575,7 @@ function ContentPanel({ T, activeNav, onClose }: { T:Theme; activeNav:SectionId;
               ))}
           </div>
           <div style={{padding:20,borderRadius:R.lg,background:T.cardBg,border:"1px solid "+T.glassBorder}}>
-            <p style={{fontSize:14,lineHeight:1.85,color:T.textSecondary}}>I&apos;m a 3rd-year IT student at SEGi University who got hooked on web development after breaking my first React component at 2am and fixing it by 4am. That feeling? Addictive.</p>
-            <p style={{fontSize:14,lineHeight:1.85,color:T.textSecondary,marginTop:12}}>I build full-stack web apps - the kind that look good, load fast, and don&apos;t break when someone clicks the wrong button.</p>
+            <p style={{fontSize:14,lineHeight:1.85,color:T.textSecondary}}>{owner.bio}</p>
           </div>
         </div>
       ),
@@ -761,7 +584,7 @@ function ContentPanel({ T, activeNav, onClose }: { T:Theme; activeNav:SectionId;
       title:"Tech Stack",
       content:(
         <div style={{display:"flex",flexDirection:"column",gap:20}}>
-          {Object.entries(OWNER.skills).map(([cat,skills],i)=>(
+          {Object.entries(owner.skills).map(([cat,skills],i)=>(
             <motion.div key={cat} initial={{opacity:0,x:-12}} animate={{opacity:1,x:0}} transition={{delay:i*0.1}}>
               <div style={{fontSize:11,color:T.textMuted,letterSpacing:"0.14em",marginBottom:10}}>{cat.toUpperCase()}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
@@ -784,7 +607,7 @@ function ContentPanel({ T, activeNav, onClose }: { T:Theme; activeNav:SectionId;
           <div style={{position:"absolute",left:0,top:0,bottom:8,width:28,zIndex:2,pointerEvents:"none",background:"linear-gradient(to right,"+T.bg+"CC,transparent)"}}/>
           <div style={{position:"absolute",right:0,top:0,bottom:8,width:28,zIndex:2,pointerEvents:"none",background:"linear-gradient(to left,"+T.bg+"CC,transparent)"}}/>
           <div style={{display:"flex",gap:16,overflowX:"auto",paddingBottom:8,scrollbarWidth:"none"}}>
-            {OWNER.projects.map((p,i)=>(
+            {owner.projects.map((p,i)=>(
               <motion.div key={i} initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:i*0.12}}
                 whileHover={{y:-6}} style={{minWidth:260,borderRadius:R.xl,background:T.cardBg,border:"1px solid "+T.glassBorder,padding:24,display:"flex",flexDirection:"column",cursor:"pointer"}}>
                 <div style={{fontSize:40,marginBottom:16}}>{p.emoji}</div>
@@ -810,7 +633,7 @@ function ContentPanel({ T, activeNav, onClose }: { T:Theme; activeNav:SectionId;
       title:"Experience & Education",
       content:(
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
-          {OWNER.experience.map((e,i)=>(
+          {owner.experience.map((e,i)=>(
             <motion.div key={i} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{delay:i*0.1}}
               style={{padding:"20px 24px",borderRadius:R.xl,background:T.cardBg,border:"1px solid "+T.glassBorder,borderLeft:"3px solid "+T.accent}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6,flexWrap:"wrap",gap:8}}>
@@ -826,22 +649,14 @@ function ContentPanel({ T, activeNav, onClose }: { T:Theme; activeNav:SectionId;
         </div>
       ),
     },
-    certs:{ title:"Awards & Credentials", content:<AwardsContent T={T}/> },
+    certs:{ title:"Awards & Credentials", content:<AwardsContent T={T} owner={owner}/> },
     contact: {
   title: "Get In Touch",
       content: (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* Availability Banner */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            style={{
-              padding: 20,
-              borderRadius: R.xl,
-              background: T.accent + "0D",
-              border: "1px solid " + T.accent + "30",
-              marginBottom: 4,
-            }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            style={{ padding: 20, borderRadius: R.xl, background: T.accent + "0D", border: "1px solid " + T.accent + "30", marginBottom: 4 }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
               <span style={{ position: "relative", display: "inline-flex", width: 10, height: 10 }}>
@@ -852,56 +667,23 @@ function ContentPanel({ T, activeNav, onClose }: { T:Theme; activeNav:SectionId;
                 />
                 <span style={{ width: 10, height: 10, borderRadius: "50%", background: T.accent, display: "block" }} />
               </span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: T.accent }}>
-                Available for Internship · 2025
-              </span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: T.accent }}>Available for Internship · 2025</span>
             </div>
-            <p style={{ fontSize: 13, color: T.textSecondary, lineHeight: 1.6 }}>
-              Full-Stack Web Development · Malaysia · Open to hybrid or on-site
-            </p>
+            <p style={{ fontSize: 13, color: T.textSecondary, lineHeight: 1.6 }}>Full-Stack Web Development · Malaysia · Open to hybrid or on-site</p>
           </motion.div>
 
-          {/* Interactive Contact Form wired to /api/contact */}
           <ContactForm T={T} />
 
-          {/* Social / Direct Links */}
           {[
-            { icon: "✉", l: "Email", v: OWNER.email, href: "mailto:" + OWNER.email },
-            { icon: "⬡", l: "GitHub", v: OWNER.github, href: OWNER.github },
-            { icon: "◈", l: "LinkedIn", v: OWNER.linkedin, href: OWNER.linkedin },
+            { icon: "✉", l: "Email", v: owner.email, href: "mailto:" + owner.email },
+            { icon: "⬡", l: "GitHub", v: "mohaddis88", href: owner.github },
+            { icon: "◈", l: "LinkedIn", v: "mohaddis-hasan", href: owner.linkedin },
           ].map((s, i) => (
-            <motion.a
-              key={i}
-              href={s.href}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.1 }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 16,
-                padding: "16px 20px",
-                borderRadius: R.lg,
-                background: T.cardBg,
-                border: "1px solid " + T.glassBorder,
-                textDecoration: "none",
-              }}
-              whileHover={{ x: 4 }}
-            >
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: R.md,
-                  background: T.accent + "18",
-                  border: "1px solid " + T.accent + "30",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 18,
-                  color: T.accent,
-                }}
-              >
+            <motion.a key={i} href={s.href}
+              initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
+              style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", borderRadius: R.lg, background: T.cardBg, border: "1px solid " + T.glassBorder, textDecoration: "none" }}
+              whileHover={{ x: 4 }}>
+              <div style={{ width: 40, height: 40, borderRadius: R.md, background: T.accent + "18", border: "1px solid " + T.accent + "30", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: T.accent }}>
                 {s.icon}
               </div>
               <div>
@@ -932,7 +714,7 @@ function ContentPanel({ T, activeNav, onClose }: { T:Theme; activeNav:SectionId;
 }
 
 // --------------------------------─
-// SIDEBAR - no avatar icon (removed per request #7)
+// SIDEBAR 
 // --------------------------------─
 const NAV: {id:SectionId;label:string}[] = [
   {id:"about",      label:"About"},
@@ -943,7 +725,7 @@ const NAV: {id:SectionId;label:string}[] = [
   {id:"contact",    label:"Contact"},
 ];
 
-function Sidebar({ T, activeNav, onNav }: { T:Theme; activeNav:SectionId|null; onNav:(id:SectionId)=>void }) {
+function Sidebar({ T, activeNav, onNav, owner }: { T:Theme; activeNav:SectionId|null; onNav:(id:SectionId)=>void; owner: OwnerData }) {
   const expanded = activeNav !== null;
 
   return(
@@ -959,20 +741,16 @@ function Sidebar({ T, activeNav, onNav }: { T:Theme; activeNav:SectionId|null; o
         overflow:"hidden",
       }}
     >
-      {/* NAVIGATE label */}
       <div style={{fontSize:9,color:T.textMuted,letterSpacing:"0.16em",marginBottom:12,fontWeight:600,alignSelf:"center"}}>
         {expanded ? "NAVIGATE" : "NAV"}
       </div>
 
-      {/* Nav items in glass inner pill */}
       <div style={{
         display:"flex", flexDirection:"column", gap:4,
         padding:"14px 8px", borderRadius:R.lg, width:"100%",
         background: T.isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.60)",
         border:"1px solid "+(T.isDark?"rgba(255,255,255,0.07)":"rgba(255,255,255,0.80)"),
-        boxShadow: T.isDark
-          ? "inset 0 1px 0 rgba(255,255,255,0.08)"
-          : "inset 0 1px 0 rgba(255,255,255,0.90), 0 2px 8px rgba(0,0,0,0.04)",
+        boxShadow: T.isDark ? "inset 0 1px 0 rgba(255,255,255,0.08)" : "inset 0 1px 0 rgba(255,255,255,0.90), 0 2px 8px rgba(0,0,0,0.04)",
       }}>
         {NAV.map(item=>{
           const active = activeNav===item.id;
@@ -1000,7 +778,6 @@ function Sidebar({ T, activeNav, onNav }: { T:Theme; activeNav:SectionId|null; o
         })}
       </div>
 
-      {/* Available dot - bottom */}
       <div style={{marginTop:"auto",display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
         <span style={{position:"relative",display:"inline-flex",width:10,height:10}}>
           <motion.span animate={{scale:[1,2.4,1],opacity:[0.6,0,0.6]}} transition={{duration:2.2,repeat:Infinity}}
@@ -1022,45 +799,27 @@ function Sidebar({ T, activeNav, onNav }: { T:Theme; activeNav:SectionId|null; o
 
 // --------------------------------─
 // HOME VIEW
-// whileInView fix: projects section uses manual intersection observer
-// because the scroll container is an inner div, not the window.
 // --------------------------------─
-
-// Hook: observe element entering viewport within a scrolling container
 function useInViewRef(): [React.RefObject<HTMLDivElement | null>, boolean] {
   const ref = useRef<HTMLDivElement | null>(null);
   const [inView, setInView] = useState(false);
-
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) setInView(true); },
-      { threshold: 0.15 }
-    );
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setInView(true); }, { threshold: 0.15 });
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
-
   return [ref, inView];
 }
 
-function HomeProjectCard({ p, i, T }: { p:typeof OWNER.projects[0]; i:number; T:Theme }) {
+function HomeProjectCard({ p, i, T }: { p:OwnerData['projects'][0]; i:number; T:Theme }) {
   const [ref, inView] = useInViewRef();
   return(
-    <motion.div
-      ref={ref}
-      initial={{ opacity:0, y:40 }}
-      animate={inView ? { opacity:1, y:0 } : { opacity:0, y:40 }}
+    <motion.div ref={ref} initial={{ opacity:0, y:40 }} animate={inView ? { opacity:1, y:0 } : { opacity:0, y:40 }}
       transition={{ duration:0.65, delay:i*0.12, ease:[0.22,1,0.36,1] }}
       whileHover={{ y:-10, boxShadow:"0 24px 48px rgba(0,0,0,"+(T.isDark?"0.35":"0.12")+")" }}
-      style={{
-        borderRadius:R.xl, padding:28,
-        display:"flex", flexDirection:"column", cursor:"pointer",
-        ...glassStyle(T, 12, false),
-        transition:"box-shadow 0.3s",
-      }}
-    >
+      style={{ borderRadius:R.xl, padding:28, display:"flex", flexDirection:"column", cursor:"pointer", ...glassStyle(T, 12, false), transition:"box-shadow 0.3s" }}>
       <div style={{fontSize:44,marginBottom:18}}>{p.emoji}</div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
         <h3 style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:18,fontWeight:700,color:T.textPrimary,margin:0}}>{p.title}</h3>
@@ -1078,11 +837,10 @@ function HomeProjectCard({ p, i, T }: { p:typeof OWNER.projects[0]; i:number; T:
   );
 }
 
-function HomeExpCard({ e, i, T }: { e:typeof OWNER.experience[0]; i:number; T:Theme }) {
+function HomeExpCard({ e, i, T }: { e:OwnerData['experience'][0]; i:number; T:Theme }) {
   const [ref, inView] = useInViewRef();
   return(
-    <motion.div ref={ref}
-      initial={{opacity:0,y:30}} animate={inView?{opacity:1,y:0}:{opacity:0,y:30}}
+    <motion.div ref={ref} initial={{opacity:0,y:30}} animate={inView?{opacity:1,y:0}:{opacity:0,y:30}}
       transition={{duration:0.6,delay:i*0.12,ease:[0.22,1,0.36,1]}}
       style={{padding:"20px 24px",borderRadius:R.xl,background:T.cardBg,border:"1px solid "+T.glassBorder,borderLeft:"3px solid "+T.accent}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6,flexWrap:"wrap",gap:8}}>
@@ -1097,7 +855,7 @@ function HomeExpCard({ e, i, T }: { e:typeof OWNER.experience[0]; i:number; T:Th
   );
 }
 
-function HomeView({ T }: { T:Theme }) {
+function HomeView({ T, owner }: { T:Theme; owner: OwnerData }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollPct, setScrollPct] = useState(0);
   const [projRef, projInView]   = useInViewRef();
@@ -1113,28 +871,20 @@ function HomeView({ T }: { T:Theme }) {
 
   const heroY   = Math.min(scrollPct*3,1)*-60;
   const heroOpa = Math.max(1-scrollPct*4,0);
-
-  const allSkills = Object.values(OWNER.skills).flat();
+  const allSkills = Object.values(owner.skills).flat();
   const marquee   = [...allSkills,...allSkills];
 
   return(
     <div ref={containerRef} style={{height:"100%",overflowY:"auto",position:"relative",scrollbarWidth:"none"}}>
-
-      {/* - HERO - FlutedGlass shader goes HERE only - */}
       <section style={{minHeight:"100vh",display:"flex",flexDirection:"column",justifyContent:"center",padding:"120px 8% 80px",position:"relative",overflow:"hidden"}}>
-        {/* Shader placeholder - uncomment HeroShaderLayer() once shaders is installed */}
-        {/* <HeroShaderLayer /> or <HeroShaderLayerDark /> based on T.isDark */}
-
-        {/* Render dark or light shader according to T.isDark */}
+        
         {T.isDark ? <HeroShaderLayerDark /> : <HeroShaderLayer />}
 
-        <div style={{transform:"translateY("+heroY+"px)",opacity:heroOpa,transition:"transform 0.1s,opacity 0.1s",position:"relative",zIndex:1}}>
-
+        <div style={{transform:`translateY(${heroY}px)`,opacity:heroOpa,transition:"transform 0.1s,opacity 0.1s",position:"relative",zIndex:1}}>
           <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.1}}>
             <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"6px 14px",borderRadius:R.full,background:T.accent+"18",border:"1px solid "+T.accent+"35",marginBottom:28}}>
               <span style={{position:"relative",display:"inline-flex",width:7,height:7}}>
-                <motion.span animate={{scale:[1,2.2,1],opacity:[0.7,0,0.7]}} transition={{duration:2,repeat:Infinity}}
-                  style={{position:"absolute",inset:0,borderRadius:"50%",background:T.accent}}/>
+                <motion.span animate={{scale:[1,2.2,1],opacity:[0.7,0,0.7]}} transition={{duration:2,repeat:Infinity}} style={{position:"absolute",inset:0,borderRadius:"50%",background:T.accent}}/>
                 <span style={{width:7,height:7,borderRadius:"50%",background:T.accent,display:"block"}}/>
               </span>
               <span style={{fontSize:12,fontWeight:600,color:T.accent}}>Available for Internship · 2025</span>
@@ -1143,20 +893,20 @@ function HomeView({ T }: { T:Theme }) {
 
           <motion.h1 initial={{opacity:0,y:40}} animate={{opacity:1,y:0}} transition={{duration:0.8,delay:0.15,ease:[0.22,1,0.36,1]}}
             style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:"clamp(3.2rem,8vw,6.5rem)",fontWeight:800,margin:"0 0 6px 0",lineHeight:1.0,letterSpacing:"-0.035em",color:T.textPrimary}}>
-            {OWNER.last.toUpperCase()}
+            {owner.last.toUpperCase()}
           </motion.h1>
           <motion.h1 initial={{opacity:0,y:40}} animate={{opacity:1,y:0}} transition={{duration:0.8,delay:0.22,ease:[0.22,1,0.36,1]}}
             style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:"clamp(3.2rem,8vw,6.5rem)",fontWeight:800,margin:"0 0 28px 0",lineHeight:1.0,letterSpacing:"-0.035em",color:T.accent}}>
-            {OWNER.first.toUpperCase()}
+            {owner.first.toUpperCase()}
           </motion.h1>
 
           <motion.p initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.4}}
             style={{fontSize:"1.2rem",color:T.textSecondary,maxWidth:520,lineHeight:1.7,marginBottom:40}}>
-            Full-Stack Web Developer. Building fast, beautiful, and memorable digital experiences from Malaysia.
+            {owner.role}. Building fast, beautiful, and memorable digital experiences from {owner.location}.
           </motion.p>
 
           <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.55}} style={{display:"flex",gap:0,flexWrap:"wrap",marginBottom:48}}>
-            {[{v:`${OWNER.deansList}×`,l:"Dean's List"},{v:OWNER.cgpa,l:"CGPA"},{v:"3rd",l:"Year"},{v:"MY",l:"Location"}].map((s,i)=>(
+            {[{v:`${owner.deansList}×`,l:"Dean's List"},{v:owner.cgpa,l:"CGPA"},{v:"3rd",l:"Year"},{v:owner.location,l:"Location"}].map((s,i)=>(
               <div key={i} style={{padding:"14px 24px",borderRight:i<3?"1px solid "+T.glassBorder:"none"}}>
                 <div style={{fontSize:22,fontWeight:800,color:T.textPrimary,fontFamily:"'Bricolage Grotesque',sans-serif"}}>{s.v}</div>
                 <div style={{fontSize:11,color:T.textMuted,marginTop:2,letterSpacing:"0.06em"}}>{s.l.toUpperCase()}</div>
@@ -1168,9 +918,6 @@ function HomeView({ T }: { T:Theme }) {
             <button style={{padding:"13px 28px",borderRadius:R.full,border:"none",cursor:"pointer",background:T.accent,color:T.accentLabel,fontSize:14,fontWeight:700,boxShadow:"0 4px 20px "+T.accent+"40"}}>
               View Projects ↓
             </button>
-            <button style={{padding:"13px 28px",borderRadius:R.full,border:"1px solid "+T.glassBorder,cursor:"pointer",background:T.glassRaised,color:T.textPrimary,fontSize:14,fontWeight:600}}>
-              Download Resume
-            </button>
           </motion.div>
         </div>
 
@@ -1181,7 +928,7 @@ function HomeView({ T }: { T:Theme }) {
         </motion.div>
       </section>
 
-      {/* - SKILLS MARQUEE - */}
+      {/* SKILLS MARQUEE */}
       <section style={{padding:"60px 0",borderTop:"1px solid "+T.glassBorder,borderBottom:"1px solid "+T.glassBorder,overflow:"hidden",background:T.isDark?"rgba(255,255,255,0.02)":"rgba(255,255,255,0.60)"}}>
         <motion.div animate={{x:["0%","-50%"]}} transition={{duration:28,ease:"linear",repeat:Infinity}}
           style={{display:"flex",gap:20,width:"max-content",alignItems:"center"}}>
@@ -1193,45 +940,39 @@ function HomeView({ T }: { T:Theme }) {
         </motion.div>
       </section>
 
-      {/* - PROJECTS - whileInView fixed with useInViewRef - */}
+      {/* PROJECTS */}
       <section style={{padding:"100px 8%"}}>
-        <motion.div ref={projRef}
-          initial={{opacity:0,y:30}} animate={projInView?{opacity:1,y:0}:{opacity:0,y:30}}
-          transition={{duration:0.65,ease:[0.22,1,0.36,1]}}>
+        <motion.div ref={projRef} initial={{opacity:0,y:30}} animate={projInView?{opacity:1,y:0}:{opacity:0,y:30}} transition={{duration:0.65,ease:[0.22,1,0.36,1]}}>
           <p style={{fontFamily:"monospace",fontSize:11,color:T.accent,letterSpacing:"0.18em",marginBottom:10}}>// featured_work</p>
           <h2 style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:"clamp(1.8rem,4vw,2.8rem)",fontWeight:800,color:T.textPrimary,marginBottom:8,letterSpacing:"-0.02em"}}>Things I&apos;ve Built</h2>
           <p style={{color:T.textSecondary,marginBottom:48,fontSize:15}}>Real projects, real problems, real code.</p>
         </motion.div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:20}}>
-          {OWNER.projects.map((p,i)=><HomeProjectCard key={i} p={p} i={i} T={T}/>)}
+          {owner.projects.map((p,i)=><HomeProjectCard key={i} p={p} i={i} T={T}/>)}
         </div>
       </section>
 
-      {/* - EXPERIENCE - */}
+      {/* EXPERIENCE */}
       <section style={{padding:"80px 8%",background:T.isDark?"rgba(255,255,255,0.02)":"rgba(255,255,255,0.50)"}}>
-        <motion.div ref={expRef}
-          initial={{opacity:0,y:30}} animate={expInView?{opacity:1,y:0}:{opacity:0,y:30}}
-          transition={{duration:0.65,ease:[0.22,1,0.36,1]}}>
+        <motion.div ref={expRef} initial={{opacity:0,y:30}} animate={expInView?{opacity:1,y:0}:{opacity:0,y:30}} transition={{duration:0.65,ease:[0.22,1,0.36,1]}}>
           <p style={{fontFamily:"monospace",fontSize:11,color:T.accent,letterSpacing:"0.18em",marginBottom:10}}>// journey</p>
           <h2 style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:"clamp(1.8rem,4vw,2.8rem)",fontWeight:800,color:T.textPrimary,marginBottom:48,letterSpacing:"-0.02em"}}>Experience & Education</h2>
         </motion.div>
         <div style={{maxWidth:640,display:"flex",flexDirection:"column",gap:16}}>
-          {OWNER.experience.map((e,i)=><HomeExpCard key={i} e={e} i={i} T={T}/>)}
+          {owner.experience.map((e,i)=><HomeExpCard key={i} e={e} i={i} T={T}/>)}
         </div>
       </section>
 
-      {/* - DEAN'S LIST - */}
+      {/* AWARDS */}
       <section style={{padding:"80px 8%"}}>
-        <motion.div ref={awardRef}
-          initial={{opacity:0,y:30}} animate={awardInView?{opacity:1,y:0}:{opacity:0,y:30}}
-          transition={{duration:0.65,ease:[0.22,1,0.36,1]}}>
+        <motion.div ref={awardRef} initial={{opacity:0,y:30}} animate={awardInView?{opacity:1,y:0}:{opacity:0,y:30}} transition={{duration:0.65,ease:[0.22,1,0.36,1]}}>
           <p style={{fontFamily:"monospace",fontSize:11,color:T.accent,letterSpacing:"0.18em",marginBottom:10}}>// recognition</p>
           <h2 style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:"clamp(1.8rem,4vw,2.8rem)",fontWeight:800,color:T.textPrimary,marginBottom:36,letterSpacing:"-0.02em"}}>Academic Awards</h2>
         </motion.div>
         <div style={{padding:28,borderRadius:R.xl,maxWidth:640,...glassStyle(T,12,false)}}>
-          <div style={{fontSize:14,color:T.accent,fontWeight:700,marginBottom:20}}>◆ {OWNER.deansList}× Consecutive Dean&apos;s List · {OWNER.uni}</div>
+          <div style={{fontSize:14,color:T.accent,fontWeight:700,marginBottom:20}}>◆ {owner.deansList}× Consecutive Dean&apos;s List · {owner.uni}</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
-            {OWNER.deanSemesters.map((d,i)=>(
+            {owner.deanSemesters.map((d,i)=>(
               <motion.div key={i} initial={{opacity:0,y:10}} animate={awardInView?{opacity:1,y:0}:{opacity:0,y:10}} transition={{delay:i*0.08}}
                 style={{padding:"14px 10px",borderRadius:R.lg,textAlign:"center",background:T.accent+"0D",border:"1px solid "+T.accent+"25"}}>
                 <div style={{fontSize:20,fontWeight:800,color:T.accent,fontFamily:"'Bricolage Grotesque',sans-serif"}}>{d.gpa}</div>
@@ -1242,23 +983,23 @@ function HomeView({ T }: { T:Theme }) {
         </div>
       </section>
 
-      {/* - FOOTER - */}
+      {/* FOOTER */}
       <footer style={{padding:"32px 8%",borderTop:"1px solid "+T.glassBorder,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
         <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:15,color:T.textPrimary}}>
-          {OWNER.initials}<span style={{color:T.accent}}>.</span>
+          {owner.initials}<span style={{color:T.accent}}>.</span>
         </span>
-        <span style={{fontSize:12,color:T.textMuted}}>© 2025 {OWNER.name} · Built with Next.js + Supabase</span>
+        <span style={{fontSize:12,color:T.textMuted}}>© 2025 {owner.name} · Built with Next.js + Supabase</span>
         <div style={{display:"flex",gap:16}}>
-          {[{l:"GitHub",u:"#"},{l:"LinkedIn",u:"#"},{l:"Email",u:"mailto:"+OWNER.email}].map((s,i)=>(
+          {[{l:"GitHub",u:owner.github},{l:"LinkedIn",u:owner.linkedin},{l:"Email",u:"mailto:"+owner.email}].map((s,i)=>(
             <a key={i} href={s.u} style={{fontSize:12,fontWeight:600,color:T.textSecondary,textDecoration:"none"}}>{s.l} ↗</a>
           ))}
         </div>
       </footer>
 
-      {/* Watermark - sticky above footer */}
+      {/* Watermark */}
       <div style={{position:"sticky",bottom:0,left:0,right:0,zIndex:0,pointerEvents:"none",overflow:"hidden",display:"flex",justifyContent:"center",marginTop:-70}}>
         <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:"clamp(5rem,13vw,10rem)",fontWeight:800,color:"transparent",letterSpacing:"-0.04em",lineHeight:1,WebkitTextStroke:"1px "+T.accent+"10",userSelect:"none",whiteSpace:"nowrap"}}>
-          {OWNER.name.toUpperCase()}
+          {owner.name.toUpperCase()}
         </div>
       </div>
     </div>
@@ -1268,28 +1009,20 @@ function HomeView({ T }: { T:Theme }) {
 // --------------------------------─
 // CHAT VIEW
 // --------------------------------─
-const CHIPS: Record<string,string[]> = {
-  default:    ["Show me his projects","What's his tech stack?","4× Dean's List - really?","Is he available?"],
-  about:      ["What's his stack?","Show his projects","His Dean's List"],
-  skills:     ["See his projects","His experience","How to contact him?"],
-  projects:   ["More about StudySync","His experience","Contact Alamin"],
-  experience: ["Show certifications","What's his stack?","Contact Alamin"],
-  certs:      ["Show projects","His stack","How to reach him?"],
-  contact:    ["Show projects","His tech stack","About Alamin"],
-};
-
 interface Msg { id:number; role:"ai"|"user"; text:string; richType:string|null; chips:string[]; }
 
-function ChatView({ T }: { T:Theme }) {
+function ChatView({ T, owner }: { T:Theme, owner: OwnerData }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
   const prefersReduced = useReducedMotion();
   const [chatActive, setChatActive] = useState(false);
   const [inputVal,   setInputVal]   = useState("");
   const [isTyping,   setIsTyping]   = useState(false);
-  const [messages,   setMessages]   = useState<Msg[]>([{
+  
+  const CHIPS = getChips(owner.first);
+  const [messages, setMessages] = useState<Msg[]>([{
     id:0, role:"ai",
-    text:"Welcome! I'm Mino - Alamin's portfolio AI.\n\nAsk me anything about his work, skills, or Dean's List streak. If you can't find what you're looking for, feel free to contact him directly.",
+    text:`Welcome! I'm Mino - ${owner.first}'s portfolio AI.\n\nAsk me anything about his work, skills, or Dean's List streak. If you can't find what you're looking for, feel free to contact him directly.`,
     richType:null, chips:CHIPS.default,
   }]);
 
@@ -1304,18 +1037,18 @@ function ChatView({ T }: { T:Theme }) {
       let result;
       if(GEMINI_KEY!=="YOUR_GEMINI_API_KEY"){
         const hist = messages.map(m=>({role:m.role,text:m.text}));
-        result = await callGemini(prompt,hist);
+        result = await callGemini(prompt,hist,owner);
       } else {
         await new Promise(r=>setTimeout(r,650+Math.random()*350));
-        result = getFallback(prompt);
+        result = getFallback(prompt,owner);
       }
       setIsTyping(false);
-      setMessages(p=>[...p,{id:Date.now()+1,role:"ai",text:result.text,richType:result.richType??null,chips:CHIPS[result.section??""]??CHIPS.default}]);
+      setMessages(p=>[...p,{id:Date.now()+1,role:"ai",text:result.text,richType:result.richType??null,chips:CHIPS[result.section as keyof typeof CHIPS]??CHIPS.default}]);
     } catch {
       setIsTyping(false);
       setMessages(p=>[...p,{id:Date.now()+1,role:"ai",text:"Something went wrong - try again in a moment.",richType:null,chips:CHIPS.default}]);
     }
-  },[messages,isTyping]);
+  },[messages,isTyping,owner,CHIPS]);
 
   const handleKey=(e:React.KeyboardEvent)=>{ if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send(inputVal);} };
   const resetChat=()=>{ setMessages([{id:0,role:"ai",text:"Welcome back! Start a new question anytime.",richType:null,chips:CHIPS.default}]); setChatActive(false); };
@@ -1324,22 +1057,20 @@ function ChatView({ T }: { T:Theme }) {
     <motion.div key="chat" initial={{opacity:0,scale:0.98}} animate={{opacity:1,scale:1}} exit={{opacity:0,scale:0.98}}
       style={{height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:chatActive?"space-between":"center",padding:"40px 8%"}}>
 
-      {/* Avatar + name hero */}
-      <motion.div layout style={{display:"flex",flexDirection:chatActive?"row":"column",alignItems:"center",gap:chatActive?14:20,alignSelf:chatActive?"flex-start":"center"}}>
-        <motion.div layout style={{width:chatActive?56:140,height:chatActive?56:140,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <MinoOrb size={chatActive?52:130} animate/>
+      <motion.div layout style={{display:"flex",flexDirection:chatActive?"row":"column",alignItems:"center",gap:chatActive?24:32,alignSelf:chatActive?"flex-start":"center"}}>
+        <motion.div layout style={{width:chatActive?64:120,height:chatActive?64:120,flexShrink:0}}>
+          <PixelAvatar T={T} />
         </motion.div>
         <motion.div layout style={{textAlign:chatActive?"left":"center"}}>
-          <motion.h1 layout style={{margin:0,fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:chatActive?"22px":"clamp(2.2rem,5vw,4rem)",fontWeight:800,letterSpacing:"-0.025em",color:T.textPrimary}}>
-            {OWNER.name}
+          <motion.h1 layout style={{margin:0,fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:chatActive?"28px":"48px",fontWeight:800,letterSpacing:"-0.02em",color:T.textPrimary}}>
+            Hi! I'm Mino.
           </motion.h1>
-          <motion.p layout style={{margin:0,fontSize:chatActive?12:16,color:T.textSecondary,marginTop:4}}>
-            Ask <strong style={{color:T.accent}}>Mino</strong> anything about his work.
+          <motion.p layout style={{margin:0,fontSize:chatActive?"14px":"18px",color:T.textSecondary,fontWeight:500,maxWidth:"400px",lineHeight:1.5}}>
+            {owner.first}'s digital assistant. I'm here to help you explore his work, skills, and experience.
           </motion.p>
         </motion.div>
       </motion.div>
 
-      {/* Messages */}
       <AnimatePresence>
         {chatActive&&(
           <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}
@@ -1349,8 +1080,8 @@ function ChatView({ T }: { T:Theme }) {
                 <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{duration:0.38,ease:[0.22,1,0.36,1]}}
                   style={{display:"flex",justifyContent:msg.role==="ai"?"flex-start":"flex-end",marginBottom:12}}>
                   {msg.role==="ai"&&(
-                    <div style={{width:30,height:30,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",marginRight:9,marginTop:3}}>
-                      <MinoOrb size={36} animate/>
+                    <div style={{width:30,height:30,flexShrink:0,marginRight:9,marginTop:3}}>
+                      <PixelAvatar T={T} />
                     </div>
                   )}
                   <div style={{maxWidth:"76%",padding:"11px 16px",
@@ -1359,7 +1090,7 @@ function ChatView({ T }: { T:Theme }) {
                     border:"1px solid "+(msg.role==="ai"?T.glassBorder:T.accent+"35"),
                     backdropFilter:"blur(8px)"}}>
                     <p style={{fontSize:13,lineHeight:1.75,color:T.textPrimary,margin:0,whiteSpace:"pre-wrap"}}>{msg.text}</p>
-                    {msg.richType&&<RichCard type={msg.richType} T={T}/>}
+                    {msg.richType&&<RichCard type={msg.richType} T={T} owner={owner}/>}
                   </div>
                 </motion.div>
                 {msg.role==="ai"&&msg.chips.length>0&&idx===messages.length-1&&!isTyping&&(
@@ -1378,8 +1109,8 @@ function ChatView({ T }: { T:Theme }) {
             {isTyping&&(
               <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0}}
                 style={{display:"flex",alignItems:"flex-start",gap:9,marginBottom:12}}>
-                <div style={{width:30,height:30,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  <MinoOrb size={36} animate/>
+                <div style={{width:30,height:30,flexShrink:0}}>
+                  <PixelAvatar T={T} />
                 </div>
                 <div style={{padding:"12px 16px",borderRadius:"6px 16px 16px 16px",background:T.glassRaised,border:"1px solid "+T.glassBorder,display:"flex",gap:5,alignItems:"center"}}>
                   {[0,1,2].map(i=>(
@@ -1394,7 +1125,6 @@ function ChatView({ T }: { T:Theme }) {
         )}
       </AnimatePresence>
 
-      {/* Input bar */}
       <motion.div layout style={{width:"100%",marginTop:chatActive?0:36}}>
         <div style={{display:"flex",alignItems:"center",padding:"6px",borderRadius:R.full,...glassStyle(T,12,true)}}>
           <AnimatePresence>
@@ -1426,16 +1156,107 @@ function ChatView({ T }: { T:Theme }) {
 }
 
 // --------------------------------─
-// ROOT
+// ROOT - FETCHES SUPABASE DB DATA
 // --------------------------------─
 export default function Portfolio() {
   const [isDark,    setIsDark]    = useState(false);
   const [viewMode,  setViewMode]  = useState<"chat"|"home">("chat");
   const [activeNav, setActiveNav] = useState<SectionId|null>(null);
+  
+  const [owner, setOwner] = useState<OwnerData>(DEFAULT_OWNER);
+  const [loading, setLoading] = useState(true);
+
   const T = isDark ? DARK : LIGHT;
+
+  useEffect(() => {
+    async function fetchDb() {
+      try {
+        const supabase = createClient();
+        const [ {data: set}, {data: proj}, {data: exp}, {data: awd} ] = await Promise.all([
+          supabase.from('site_settings').select('*'),
+          supabase.from('projects').select('*').eq('visible', true).order('sort_order'),
+          supabase.from('experience').select('*').eq('visible', true).order('sort_order'),
+          supabase.from('awards').select('*').eq('visible', true).order('sort_order')
+        ]);
+
+        const sMap: Record<string, string> = {};
+        set?.forEach(row => sMap[row.key] = row.value);
+
+        const liveOwner: OwnerData = JSON.parse(JSON.stringify(DEFAULT_OWNER));
+
+        if (sMap['owner_name']) {
+            liveOwner.name = sMap['owner_name'];
+            const parts = sMap['owner_name'].split(' ');
+            liveOwner.first = parts[0];
+            liveOwner.last = parts.slice(1).join(' ');
+            liveOwner.initials = parts.map(n => n[0]).join('').toUpperCase();
+        }
+        if (sMap['owner_role']) liveOwner.role = sMap['owner_role'];
+        if (sMap['owner_bio']) liveOwner.bio = sMap['owner_bio'];
+        if (sMap['owner_uni']) liveOwner.uni = sMap['owner_uni'];
+        if (sMap['owner_year']) liveOwner.year = sMap['owner_year'];
+        if (sMap['owner_location']) liveOwner.location = sMap['owner_location'];
+        if (sMap['owner_cgpa']) liveOwner.cgpa = sMap['owner_cgpa'];
+        if (sMap['owner_dean_list']) liveOwner.deansList = parseInt(sMap['owner_dean_list']) || 0;
+        if (sMap['social_email']) liveOwner.email = sMap['social_email'];
+        if (sMap['social_github']) liveOwner.github = sMap['social_github'];
+        if (sMap['social_linkedin']) liveOwner.linkedin = sMap['social_linkedin'];
+
+        if (proj && proj.length > 0) {
+            liveOwner.projects = proj.map(p => ({
+                title: p.title,
+                tag: p.category || "Project",
+                desc: p.description || "",
+                tech: p.tech_stack || [],
+                demo: p.demo_url || "#",
+                repo: p.repo_url || "#",
+                emoji: "🚀"
+            }));
+        }
+
+        if (exp && exp.length > 0) {
+            liveOwner.experience = exp.map(e => ({
+                role: e.role,
+                org: e.org,
+                period: e.period,
+                desc: e.description || ""
+            }));
+        }
+
+        if (awd && awd.length > 0) {
+            const academic = awd.filter(a => a.category === 'academic');
+            const certs = awd.filter(a => a.category === 'certifications');
+
+            if (academic.length > 0) {
+               liveOwner.awards.academic = academic.map(a => ({ title: a.title, issuer: a.issuer, year: a.year || "", gpa: a.gpa || "", hasPdf: !!a.pdf_url }));
+               liveOwner.deanSemesters = academic.map(a => ({ sem: a.year || "", gpa: a.gpa || "" }));
+            }
+            if (certs.length > 0) {
+               liveOwner.awards.certifications = certs.map(a => ({ title: a.title, issuer: a.issuer, year: a.year || "", hasPdf: !!a.pdf_url }));
+               liveOwner.certs = certs.map(a => ({ title: a.title, issuer: a.issuer, year: a.year || "" }));
+            }
+        }
+        
+        setOwner(liveOwner);
+      } catch (e) {
+        console.error("DB Fetch Error", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchDb();
+  }, []);
 
   const handleNav = useCallback((id:SectionId)=>setActiveNav(p=>p===id?null:id),[]);
   const closeNav  = useCallback(()=>setActiveNav(null),[]);
+
+  if (loading) {
+    return (
+      <div style={{ width: "100vw", height: "100vh", backgroundColor: T.bg, display: "flex", justifyContent: "center", alignItems: "center" }}>
+         <div style={{ width: 80, height: 80 }}><PixelAvatar T={T} /></div>
+      </div>
+    );
+  }
 
   return(
     <>
@@ -1447,14 +1268,9 @@ export default function Portfolio() {
       `}</style>
 
       <div style={{width:"100vw",height:"100vh",overflow:"hidden",backgroundColor:T.bg,position:"relative",color:T.textPrimary,transition:"background-color 0.4s",display:"flex",fontFamily:"'Inter',-apple-system,system-ui,sans-serif"}}>
-
-        {/* z:0 Liquid cursor blobs */}
         <LiquidBg T={T}/>
-
-        {/* z:1 Noise texture */}
         <div style={{position:"fixed",inset:0,zIndex:1,pointerEvents:"none",opacity:isDark?0.04:0.025,backgroundImage:"url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")"}}/>
 
-        {/* z:50 Top controls */}
         <div style={{position:"fixed",top:24,right:28,zIndex:50,display:"flex",gap:10}}>
           <motion.button whileHover={{scale:1.04}} whileTap={{scale:0.97}}
             onClick={()=>setViewMode(v=>v==="home"?"chat":"home")}
@@ -1468,24 +1284,21 @@ export default function Portfolio() {
           <AudioCtrl T={T}/>
         </div>
 
-        {/* z:10 Sidebar */}
-        <Sidebar T={T} activeNav={activeNav} onNav={handleNav}/>
+        <Sidebar T={T} activeNav={activeNav} onNav={handleNav} owner={owner}/>
 
-        {/* z:40 Content panel */}
         <AnimatePresence>
           {activeNav&&(
             <div onClick={e=>e.stopPropagation()}>
-              <ContentPanel T={T} activeNav={activeNav} onClose={closeNav}/>
+              <ContentPanel T={T} activeNav={activeNav} onClose={closeNav} owner={owner}/>
             </div>
           )}
         </AnimatePresence>
 
-        {/* z:20 Main */}
         <div style={{flex:1,position:"relative",zIndex:20,overflow:"hidden"}} onClick={closeNav}>
           <AnimatePresence mode="wait">
             {viewMode==="chat"
-              ? <ChatView key="chat" T={T}/>
-              : <HomeView key="home" T={T}/>
+              ? <ChatView key="chat" T={T} owner={owner}/>
+              : <HomeView key="home" T={T} owner={owner}/>
             }
           </AnimatePresence>
         </div>
