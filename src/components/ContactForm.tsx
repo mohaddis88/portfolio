@@ -1,12 +1,8 @@
 "use client";
-// components/ContactForm.tsx
-// Wired to /api/contact. All 5 UI states handled.
-// Usage in page.tsx: import { ContactForm } from "@/components/ContactForm"
-
 import { useState } from "react";
 
 interface Theme {
-  accent: string; accentLabel: string; text: string;
+  accent: string; accentLabel: string; textPrimary: string;
   textSecondary: string; textMuted: string;
   glassBorder: string; glassRaised: string; cardBg: string;
   isDark: boolean; bg: string;
@@ -61,7 +57,7 @@ export function ContactForm({ T }: { T: Theme }) {
     width:"100%", padding:"12px 16px", borderRadius:R.md, fontSize:14,
     fontFamily:"inherit", outline:"none", boxSizing:"border-box",
     background: T.isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
-    color: T.text, transition:"border-color 0.2s, box-shadow 0.2s",
+    color: T.textPrimary, transition:"border-color 0.2s, box-shadow 0.2s",
   };
   const normal: React.CSSProperties = { ...base, border:"1px solid "+T.glassBorder };
   const errStyle: React.CSSProperties = { ...base, border:"1px solid rgba(239,68,68,0.45)" };
@@ -82,12 +78,11 @@ export function ContactForm({ T }: { T: Theme }) {
   const Label = ({ children }: { children: React.ReactNode }) =>
     <label style={{fontSize:11,fontWeight:600,color:T.textMuted,display:"block",marginBottom:6,letterSpacing:"0.06em"}}>{children}</label>;
 
-  // State 5 - Success
   if (status === "success") {
     return (
       <div style={{textAlign:"center",padding:"40px 24px"}}>
         <div style={{width:64,height:64,borderRadius:"50%",background:T.isDark?"rgba(110,231,183,0.12)":"rgba(16,185,129,0.10)",border:"2px solid rgba(110,231,183,0.30)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 20px"}}>✓</div>
-        <h3 style={{fontSize:20,fontWeight:800,color:T.text,marginBottom:10,fontFamily:"'Bricolage Grotesque',sans-serif"}}>Message sent!</h3>
+        <h3 style={{fontSize:20,fontWeight:800,color:T.textPrimary,marginBottom:10,fontFamily:"'Bricolage Grotesque',sans-serif"}}>Message sent!</h3>
         <p style={{fontSize:14,color:T.textSecondary,lineHeight:1.7,marginBottom:24}}>Thanks for reaching out. I'll reply within 24–48 hours.<br/>Check your inbox for a confirmation.</p>
         <button onClick={()=>{ setStatus("idle"); setForm({name:"",email:"",subject:"",message:""}); }}
           style={{fontSize:13,fontWeight:600,color:T.accent,background:"none",border:"none",cursor:"pointer",textDecoration:"underline"}}>
@@ -99,8 +94,6 @@ export function ContactForm({ T }: { T: Theme }) {
 
   return (
     <form onSubmit={handleSubmit} noValidate style={{display:"flex",flexDirection:"column",gap:16}}>
-
-      {/* State 4 - API error banner */}
       {status==="error" && apiError && (
         <div style={{padding:"12px 16px",borderRadius:R.md,background:"rgba(239,68,68,0.10)",border:"1px solid rgba(239,68,68,0.25)",color:"rgba(248,113,113,1)",fontSize:13,display:"flex",alignItems:"center",gap:8}}>
           <span>⚠</span>{apiError}
@@ -108,7 +101,6 @@ export function ContactForm({ T }: { T: Theme }) {
         </div>
       )}
 
-      {/* Name + Email */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
         <div>
           <Label>NAME</Label>
@@ -122,14 +114,12 @@ export function ContactForm({ T }: { T: Theme }) {
         </div>
       </div>
 
-      {/* Subject */}
       <div>
         <Label>SUBJECT</Label>
         <input type="text" value={form.subject} onChange={set("subject")} placeholder="What's this about?" disabled={status==="loading"} style={errors.subject?errStyle:normal} onFocus={onFocus} onBlur={onBlur(!!errors.subject)} />
         <Err msg={errors.subject}/>
       </div>
 
-      {/* Message */}
       <div>
         <Label>MESSAGE</Label>
         <textarea value={form.message} onChange={set("message")} placeholder="Tell me about your project, internship opportunity, or just say hi..." rows={5} disabled={status==="loading"}
@@ -140,14 +130,12 @@ export function ContactForm({ T }: { T: Theme }) {
         </div>
       </div>
 
-      {/* State 2 - Loading / State 1 - Default */}
       <button type="submit" disabled={status==="loading"}
         style={{padding:"14px 28px",borderRadius:R.full,border:"none",cursor:status==="loading"?"not-allowed":"pointer",background:status==="loading"?T.accent+"70":T.accent,color:T.accentLabel,fontSize:14,fontWeight:700,fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8,transition:"opacity 0.2s,background 0.2s",alignSelf:"flex-start"}}>
         {status==="loading"
           ? <><span style={{width:16,height:16,border:"2px solid "+T.accentLabel+"40",borderTopColor:T.accentLabel,borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite"}}/>Sending...</>
           : "Send Message →"}
       </button>
-
       <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
       <p style={{fontSize:11,color:T.textMuted,margin:0}}>No spam. I reply personally within 48 hours.</p>
     </form>
