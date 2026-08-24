@@ -1021,11 +1021,7 @@ function ChatView({ T, owner }: { T:Theme, owner: OwnerData }) {
   const [isTyping,   setIsTyping]   = useState(false);
   
   const CHIPS = getChips(owner.first);
-  const [messages, setMessages] = useState<Msg[]>([{
-    id:0, role:"ai",
-    text:`Welcome! I'm Mino - ${owner.first}'s portfolio AI.\n\nAsk me anything about his work, skills, or Dean's List streak. If you can't find what you're looking for, feel free to contact him directly.`,
-    richType:null, chips:CHIPS.default,
-  }]);
+  const [messages, setMessages] = useState<Msg[]>([]);
 
   useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:prefersReduced?"auto":"smooth"}); },[messages,isTyping,prefersReduced]);
 
