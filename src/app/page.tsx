@@ -1,7 +1,7 @@
 "use client";
 
 // --------------------------------─
-// portfolio-v7-connected.tsx
+// portfolio-v8-final.tsx
 // Drop into: app/page.tsx
 // --------------------------------─
 
@@ -132,6 +132,7 @@ const DEFAULT_OWNER = {
   },
   deanSemesters: [{ sem:"Sem 2 2023/24", gpa:"3.92" }],
   certs: [{ title:"Meta Front-End", issuer:"Coursera", year:"2024" }],
+  bgMusic: "https://cdn.pixabay.com/audio/2024/11/13/audio_ac22a60be9.mp3",
 };
 
 export type OwnerData = typeof DEFAULT_OWNER;
@@ -171,7 +172,7 @@ Projects: ${owner.projects.map(p=>p.title+" ("+p.tag+") - "+p.desc).join(" | ")}
 Experience: ${owner.experience.map(e=>e.role+" at "+e.org+" ("+e.period+")").join(" | ")}
 Certs: ${owner.certs.map(c=>c.title+" by "+c.issuer+" ("+c.year+")").join(" | ")}`;
 
-  const ep = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=" + GEMINI_KEY;
+  const ep = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_KEY;
   const contents = [
     { role:"user",  parts:[{text:SYSTEM_PROMPT}] },
     { role:"model", parts:[{text:`I'm Mino, ready to represent ${owner.first}.`}] },
@@ -279,12 +280,12 @@ function LiquidBg({ T }: { T: Theme }) {
 // --------------------------------─
 // AUDIO
 // --------------------------------─
-function AudioCtrl({ T }: { T: Theme }) {
+function AudioCtrl({ T, musicUrl }: { T: Theme, musicUrl: string }) {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    const audio = new Audio("https://cdn.pixabay.com/audio/2024/11/13/audio_ac22a60be9.mp3");
+    const audio = new Audio(musicUrl);
     audio.loop = true; audio.volume = 0;
     audioRef.current = audio;
     const start = () => {
@@ -297,7 +298,7 @@ function AudioCtrl({ T }: { T: Theme }) {
     };
     document.addEventListener("click", start);
     return () => { audio.pause(); document.removeEventListener("click", start); };
-  }, []);
+  }, [musicUrl]);
 
   const toggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -964,7 +965,7 @@ function HomeView({ T, owner }: { T:Theme; owner: OwnerData }) {
       </section>
 
       {/* AWARDS */}
-      <section style={{padding:"80px 8%"}}>
+      <section style={{padding:"80px 8%",background:T.isDark?"rgba(255,255,255,0.02)":"rgba(255,255,255,0.50)"}}>
         <motion.div ref={awardRef} initial={{opacity:0,y:30}} animate={awardInView?{opacity:1,y:0}:{opacity:0,y:30}} transition={{duration:0.65,ease:[0.22,1,0.36,1]}}>
           <p style={{fontFamily:"monospace",fontSize:11,color:T.accent,letterSpacing:"0.18em",marginBottom:10}}>// recognition</p>
           <h2 style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:"clamp(1.8rem,4vw,2.8rem)",fontWeight:800,color:T.textPrimary,marginBottom:36,letterSpacing:"-0.02em"}}>Academic Awards</h2>
@@ -1201,6 +1202,7 @@ export default function Portfolio() {
         if (sMap['social_email']) liveOwner.email = sMap['social_email'];
         if (sMap['social_github']) liveOwner.github = sMap['social_github'];
         if (sMap['social_linkedin']) liveOwner.linkedin = sMap['social_linkedin'];
+        if (sMap['bg_music_url']) liveOwner.bgMusic = sMap['bg_music_url'];
 
         if (proj && proj.length > 0) {
             liveOwner.projects = proj.map(p => ({
@@ -1281,7 +1283,7 @@ export default function Portfolio() {
             style={{width:44,height:44,borderRadius:"50%",border:"none",cursor:"pointer",...glassStyle(T,12),fontSize:18}}>
             {isDark?"☀️":"🌙"}
           </button>
-          <AudioCtrl T={T}/>
+          <AudioCtrl T={T} musicUrl={owner.bgMusic} />
         </div>
 
         <Sidebar T={T} activeNav={activeNav} onNav={handleNav} owner={owner}/>

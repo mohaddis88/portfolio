@@ -3,6 +3,16 @@ import { useEffect, useState } from "react";
 
 const T = { bgSurface: "#211C19", glassRaised: "rgba(22,17,14,0.80)", border: "rgba(255,255,255,0.09)", accent: "#D4B896", accentLabel: "#1A1614", text: "#F5F0EA", textSub: "#A89F91" };
 
+// ── Label + input wrapper ─────────────────────────────────────
+function Field({ label, children }: { label:string; children:React.ReactNode }) {
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+      <label style={{ fontSize:11, fontWeight:600, color:T.textSub, letterSpacing:"0.08em", textTransform:"uppercase" }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
 export function SettingsSection({ supabase, toast }: any) {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -27,11 +37,11 @@ export function SettingsSection({ supabase, toast }: any) {
     const { error } = await supabase.from('site_settings').upsert(rows, { onConflict: 'key' });
     
     setSaving(false);
-    if (error) toast("Failed to save settings");
-    else toast("Portfolio Settings Updated!");
+    if (error) toast("Failed to save settings", "error");
+    else toast("Portfolio Settings Updated!", "success");
   };
 
-  const inputStyle = { width: "100%", padding: "10px 14px", background: T.bgSurface, border: `1px solid ${T.border}`, color: T.text, borderRadius: 8, marginBottom: 16 };
+  const inputStyle = { width: "100%", padding: "10px 14px", background: T.bgSurface, border: `1px solid ${T.border}`, color: T.text, borderRadius: 8, marginBottom: 16, outline: "none", fontFamily: "inherit" };
   const labelStyle = { display: "block", fontSize: 12, color: T.textSub, marginBottom: 6, fontWeight: 600, textTransform: "uppercase" as const };
 
   return (
@@ -57,6 +67,12 @@ export function SettingsSection({ supabase, toast }: any) {
         </div>
 
         <div><label style={labelStyle}>Bio (About Section)</label><textarea rows={3} style={inputStyle} value={settings['owner_bio'] || ''} onChange={e => handleChange('owner_bio', e.target.value)} /></div>
+        
+        <div><label style={labelStyle}>Available Badge Text</label><input style={inputStyle} value={settings['available_text'] || ''} onChange={e => handleChange('available_text', e.target.value)} /></div>
+        <div><label style={labelStyle}>Mino Greeting Message</label><textarea rows={3} style={inputStyle} value={settings['mino_greeting'] || ''} onChange={e => handleChange('mino_greeting', e.target.value)} /></div>
+        
+        {/* HERE IS THE NEW MUSIC URL FIELD */}
+        <div><label style={labelStyle}>Background Music URL (.mp3)</label><input style={inputStyle} value={settings['bg_music_url'] || ''} onChange={e => handleChange('bg_music_url', e.target.value)} placeholder="Paste Supabase MP3 URL here" /></div>
 
         <h3 style={{ fontSize: 18, color: T.text, marginTop: 24, marginBottom: 16 }}>Social Links</h3>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
