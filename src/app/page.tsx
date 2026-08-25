@@ -197,7 +197,7 @@ function getFallback(p:string, owner: OwnerData){
   if(/experience|edu/.test(t))    return {text:"Where he's been:",richType:"SHOW_EXPERIENCE",section:"experience"};
   if(/cert|award|dean|gpa/.test(t)) return {text:`${owner.deansList}× Dean's List - consistency, not luck:`,richType:"SHOW_CERTS",section:"certs"};
   if(/contact|reach|hire/.test(t)) return {text:`Best ways to reach ${owner.first}:`,richType:"SHOW_CONTACT",section:"contact"};
-  if(/avail|intern/.test(t))       return {text:`Yes - actively looking for Full-Stack internship 2025. ${owner.location}-based, open to hybrid or on-site.`,richType:null,section:null};
+  if(/avail|intern/.test(t))       return {text:`Yes - actively looking for Full-Stack internship 2026. ${owner.location}-based, open to hybrid or on-site.`,richType:null,section:null};
   return {text:`Try asking about his projects, stack, Dean's List, experience, or how to contact him.`,richType:null,section:null};
 }
 
@@ -465,7 +465,7 @@ function RichCard({ type, T, owner }: { type:string; T:Theme, owner: OwnerData }
               style={{position:"absolute",inset:0,borderRadius:"50%",background:T.accent}}/>
             <span style={{width:8,height:8,borderRadius:"50%",background:T.accent,display:"block"}}/>
           </span>
-          Available for Full-Stack internship · 2025
+          Available for Full-Stack internship · 2026
         </motion.div>
       </div>
     );
@@ -668,7 +668,7 @@ function ContentPanel({ T, activeNav, onClose, owner }: { T:Theme; activeNav:Sec
                 />
                 <span style={{ width: 10, height: 10, borderRadius: "50%", background: T.accent, display: "block" }} />
               </span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: T.accent }}>Available for Internship · 2025</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: T.accent }}>Available for Internship · 2026</span>
             </div>
             <p style={{ fontSize: 13, color: T.textSecondary, lineHeight: 1.6 }}>Full-Stack Web Development · Malaysia · Open to hybrid or on-site</p>
           </motion.div>
@@ -888,7 +888,7 @@ function HomeView({ T, owner }: { T:Theme; owner: OwnerData }) {
                 <motion.span animate={{scale:[1,2.2,1],opacity:[0.7,0,0.7]}} transition={{duration:2,repeat:Infinity}} style={{position:"absolute",inset:0,borderRadius:"50%",background:T.accent}}/>
                 <span style={{width:7,height:7,borderRadius:"50%",background:T.accent,display:"block"}}/>
               </span>
-              <span style={{fontSize:12,fontWeight:600,color:T.accent}}>Available for Internship · 2025</span>
+              <span style={{fontSize:12,fontWeight:600,color:T.accent}}>Available for Internship · 2026</span>
             </div>
           </motion.div>
 
@@ -989,7 +989,7 @@ function HomeView({ T, owner }: { T:Theme; owner: OwnerData }) {
         <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:15,color:T.textPrimary}}>
           {owner.initials}<span style={{color:T.accent}}>.</span>
         </span>
-        <span style={{fontSize:12,color:T.textMuted}}>© 2025 {owner.name} · Built with Next.js + Supabase</span>
+        <span style={{fontSize:12,color:T.textMuted}}>© 2026 {owner.name} · Built with Next.js + Supabase</span>
         <div style={{display:"flex",gap:16}}>
           {[{l:"GitHub",u:owner.github},{l:"LinkedIn",u:owner.linkedin},{l:"Email",u:"mailto:"+owner.email}].map((s,i)=>(
             <a key={i} href={s.u} style={{fontSize:12,fontWeight:600,color:T.textSecondary,textDecoration:"none"}}>{s.l} ↗</a>
