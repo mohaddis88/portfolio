@@ -280,11 +280,15 @@ function RichCard({ type, T, owner }: { type:string; T:Theme, owner: OwnerData }
         {owner.projects.map((p,i)=>(
           <motion.div key={i} initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:i*0.1}}
             whileHover={{y:-2}} style={{...card,cursor:"pointer"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
-              <span style={{fontSize:14,fontWeight:700,color:T.textPrimary}}>{p.emoji} {p.title}</span>
-              <span style={chip}>{p.tag}</span>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+              <span style={{fontSize:18}}>{p.emoji}</span>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                <span style={chip}>{p.tag}</span>
+                <span style={{...chip,background:p.status==="Completed"?"#16a34a22":p.status==="In Progress"?"#eab30822":"#64748b22",color:p.status==="Completed"?"#16a34a":p.status==="In Progress"?"#ca8a04":"#64748b",border:"none"}}>{p.status}</span>
+              </div>
             </div>
-            <p style={{fontSize:12,color:T.textSecondary,lineHeight:1.6,marginBottom:8}}>{p.desc}</p>
+            <div style={{fontSize:14,fontWeight:700,color:T.textPrimary,marginBottom:5}}>{p.title}</div>
+            <p style={{fontSize:12,color:T.textSecondary,lineHeight:1.6,marginBottom:8,whiteSpace:"pre-wrap"}}>{p.desc}</p>
             <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
               {p.tech.map((t,j)=><span key={j} style={chip}>{t}</span>)}
             </div>
@@ -443,7 +447,7 @@ function AwardsContent({ T, owner }: { T:Theme, owner: OwnerData }) {
               </div>
               <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4,flexShrink:0}}>
                 <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:R.full,background:T.accent+"18",color:T.accent,border:"1px solid "+T.accent+"28"}}>{item.year}</span>
-                {item.hasPdf&&<a href="#" target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:T.accent,textDecoration:"none",fontWeight:600}}>PDF ↗</a>}
+                {item.hasPdf&&item.pdfUrl&&<a href={item.pdfUrl} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:T.accent,textDecoration:"none",fontWeight:600}}>PDF ↗</a>}
               </div>
             </motion.div>
           ))}
@@ -518,12 +522,15 @@ function ContentPanel({ T, activeNav, onClose, owner }: { T:Theme; activeNav:Sec
             {owner.projects.map((p,i)=>(
               <motion.div key={i} initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:i*0.12}}
                 whileHover={{y:-6}} style={{minWidth:260,borderRadius:R.xl,background:T.cardBg,border:"1px solid "+T.glassBorder,padding:24,display:"flex",flexDirection:"column",cursor:"pointer"}}>
-                <div style={{fontSize:40,marginBottom:16}}>{p.emoji}</div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <h3 style={{fontSize:17,fontWeight:700,color:T.textPrimary,margin:0}}>{p.title}</h3>
-                  <span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:R.full,background:T.accent+"18",color:T.accent,border:"1px solid "+T.accent+"30"}}>{p.tag}</span>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                  <div style={{fontSize:40}}>{p.emoji}</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"flex-end"}}>
+                    <span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:R.full,whiteSpace:"nowrap",background:T.accent+"18",color:T.accent,border:"1px solid "+T.accent+"30"}}>{p.tag}</span>
+                    <span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:R.full,whiteSpace:"nowrap",background:p.status==="Completed"?"#16a34a22":p.status==="In Progress"?"#eab30822":"#64748b22",color:p.status==="Completed"?"#16a34a":p.status==="In Progress"?"#ca8a04":"#64748b"}}>{p.status}</span>
+                  </div>
                 </div>
-                <p style={{fontSize:13,color:T.textSecondary,lineHeight:1.65,marginBottom:16,flex:1}}>{p.desc}</p>
+                <h3 style={{fontSize:17,fontWeight:700,color:T.textPrimary,margin:"0 0 8px"}}>{p.title}</h3>
+                <p style={{fontSize:13,color:T.textSecondary,lineHeight:1.65,marginBottom:16,flex:1,whiteSpace:"pre-wrap"}}>{p.desc}</p>
                 <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:16}}>
                   {p.tech.map((t,j)=><span key={j} style={{fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:R.full,background:T.accent+"12",color:T.accent,border:"1px solid "+T.accent+"25"}}>{t}</span>)}
                 </div>
@@ -728,12 +735,15 @@ function HomeProjectCard({ p, i, T }: { p:OwnerData['projects'][0]; i:number; T:
       transition={{ duration:0.65, delay:i*0.12, ease:[0.22,1,0.36,1] }}
       whileHover={{ y:-10, boxShadow:"0 24px 48px rgba(0,0,0,"+(T.isDark?"0.35":"0.12")+")" }}
       style={{ borderRadius:R.xl, padding:28, display:"flex", flexDirection:"column", cursor:"pointer", ...glassStyle(T, 12, false), transition:"box-shadow 0.3s" }}>
-      <div style={{fontSize:44,marginBottom:18}}>{p.emoji}</div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-        <h3 style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:18,fontWeight:700,color:T.textPrimary,margin:0}}>{p.title}</h3>
-        <span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:R.full,background:T.accent+"18",color:T.accent,border:"1px solid "+T.accent+"30"}}>{p.tag}</span>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+        <div style={{fontSize:44}}>{p.emoji}</div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"flex-end"}}>
+          <span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:R.full,whiteSpace:"nowrap",background:T.accent+"18",color:T.accent,border:"1px solid "+T.accent+"30"}}>{p.tag}</span>
+          <span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:R.full,whiteSpace:"nowrap",background:p.status==="Completed"?"#16a34a22":p.status==="In Progress"?"#eab30822":"#64748b22",color:p.status==="Completed"?"#16a34a":p.status==="In Progress"?"#ca8a04":"#64748b"}}>{p.status}</span>
+        </div>
       </div>
-      <p style={{fontSize:13,color:T.textSecondary,lineHeight:1.7,marginBottom:16,flex:1}}>{p.desc}</p>
+      <h3 style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:18,fontWeight:700,color:T.textPrimary,margin:"0 0 10px"}}>{p.title}</h3>
+      <p style={{fontSize:13,color:T.textSecondary,lineHeight:1.7,marginBottom:16,flex:1,whiteSpace:"pre-wrap"}}>{p.desc}</p>
       <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:16}}>
         {p.tech.map((t,j)=><span key={j} style={{fontSize:11,fontWeight:600,padding:"4px 11px",borderRadius:R.full,background:T.accent+"12",color:T.accent,border:"1px solid "+T.accent+"25"}}>{t}</span>)}
       </div>

@@ -24,14 +24,14 @@ export const DEFAULT_OWNER = {
     Tools:    ["Git", "Figma", "Vercel", "Docker", "VS Code"],
   },
   projects: [
-    { title:"StudySync",   tag:"Full-Stack", desc:"Real-time collaborative study platform - live cursors, shared notes, Pomodoro timer.", tech:["Next.js","Supabase","TypeScript"], demo:"#", repo:"#", emoji:"📚" },
+    { title:"StudySync",   tag:"Full-Stack", desc:"Real-time collaborative study platform - live cursors, shared notes, Pomodoro timer.", tech:["Next.js","Supabase","TypeScript"], demo:"#", repo:"#", emoji:"📚", status:"Completed" },
   ],
   experience: [
     { role:"Frontend Developer", org:"Freelance",  period:"Jan 2024 – Present", desc:"Client projects - landing pages, dashboards." },
   ],
   awards: {
-    academic:       [{ title:"Dean's List", issuer:"SEGi University", year:"2023/24", gpa:"3.92", hasPdf:true }],
-    certifications: [{ title:"Meta Front-End", issuer:"Coursera",   year:"2024", hasPdf:true }],
+    academic:       [{ title:"Dean's List", issuer:"SEGi University", year:"2023/24", gpa:"3.92", hasPdf:true, pdfUrl:""  }],
+    certifications: [{ title:"Meta Front-End", issuer:"Coursera",   year:"2024", hasPdf:true, pdfUrl:""  }],
     volunteering:   [],
     personal:       [],
   },

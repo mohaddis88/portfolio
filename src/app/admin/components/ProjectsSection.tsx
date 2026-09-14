@@ -23,6 +23,7 @@ export function ProjectsSection({ supabase, toast }: any) {
       title: formData.get("title"),
       description: formData.get("description"),
       category: formData.get("category"),
+      status: formData.get("status"),
       tech_stack: techStack,
       demo_url: formData.get("demo_url"),
       repo_url: formData.get("repo_url"),
@@ -61,6 +62,11 @@ export function ProjectsSection({ supabase, toast }: any) {
           <h3 style={{ marginBottom: 16, color: T.text }}>{editing.id ? "Edit Project" : "New Project"}</h3>
           <input name="title" defaultValue={editing.title} placeholder="Project Title" required style={inputStyle} />
           <input name="category" defaultValue={editing.category || "Full-Stack"} placeholder="Category (e.g. Full-Stack)" required style={inputStyle} />
+          <select name="status" defaultValue={editing.status || "Completed"} required style={{...inputStyle, WebkitAppearance:"none"}}>
+            <option value="Completed">Completed</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Planned">Planned</option>
+          </select>
           <textarea name="description" defaultValue={editing.description} placeholder="Description" rows={3} required style={inputStyle} />
           <input name="tech_stack" defaultValue={editing.tech_stack?.join(", ")} placeholder="Tech Stack (comma separated, e.g. React, Supabase)" style={inputStyle} />
           <input name="demo_url" defaultValue={editing.demo_url} placeholder="Demo URL" style={inputStyle} />
