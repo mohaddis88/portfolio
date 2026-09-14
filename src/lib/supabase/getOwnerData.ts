@@ -49,6 +49,7 @@ export async function getOwnerData(): Promise<OwnerData> {
         demo: p.demo_url || "#",
         repo: p.repo_url || "#",
         emoji: "🚀",
+        status: p.status || "Completed"
       }));
     }
 
@@ -67,12 +68,13 @@ export async function getOwnerData(): Promise<OwnerData> {
 
       if (academic.length > 0) {
         liveOwner.awards.academic = academic.map((a) => ({
-          title: a.title,
-          issuer: a.issuer,
-          year: a.year || "",
-          gpa: a.gpa || "",
-          hasPdf: !!a.pdf_url,
-        }));
+        title: a.title,
+        issuer: a.issuer,
+        year: a.year || "",
+        gpa: a.gpa || "",
+        hasPdf: !!a.pdf_url,
+        pdfUrl: a.pdf_url || "",
+      }));
         liveOwner.deanSemesters = academic.map((a) => ({ sem: a.year || "", gpa: a.gpa || "" }));
       }
       if (certs.length > 0) {
@@ -81,6 +83,7 @@ export async function getOwnerData(): Promise<OwnerData> {
           issuer: a.issuer,
           year: a.year || "",
           hasPdf: !!a.pdf_url,
+          pdfUrl: a.pdf_url || "",
         }));
         liveOwner.certs = certs.map((a) => ({ title: a.title, issuer: a.issuer, year: a.year || "" }));
       }
